@@ -1,6 +1,6 @@
-#include "includes/virus.hpp"
+#include "includes/zone.hpp"
 
-Virus::Virus(int dna, string name, float strength) {
+Virus::Virus(int dna, std::string name, float strength) {
 	dna = dna;
 	name = name;
 	strength = strength;
@@ -16,7 +16,7 @@ void Virus::infect(Person person) {
 	person.infected = true;
 	// set person to immune with 1% probability
 	int is_immune = rand() % 100 + 1;
-	if (is_immunue == 1) {
+	if (is_immune == 1) {
 		person.immune[name] = true;
 	}
 }

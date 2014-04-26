@@ -19,6 +19,6 @@ private:
 	bool dormant;
 	bool evolved;
 
-	int* infected; // list of array positions of all infected people not immune to virus
-	int* immune; // list of array positions of all people who are infected but immune to virus
+	Person* infected; // list of array positions of all infected people not immune to virus
+	Person* immune; // list of array positions of all people who are infected but immune to virus
 };

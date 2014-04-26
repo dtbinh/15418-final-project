@@ -1,6 +1,6 @@
 #include "includes/vaccine.hpp"
 
-Vaccine::Vaccine(int dna, string name, string virus, float strength, int cost) {
+Vaccine::Vaccine(int dna, std::string name, std::string virus, float strength, int cost) {
 	dna = dna;
 	name = name;
 	strength = strength;

@@ -4,7 +4,7 @@
 World::World() {
 	setup_virus();
 	setup_zones();
-	step = 0;
+	steps = 0;
 }
 
 /*
@@ -13,7 +13,7 @@ World::World() {
 void World::setup_zones(){
 	// set up 6 different locations
 	// singapore, new york city, tokyo, mumbai, zurich and cairo
-	Location singapore_loc, nyc_loc, tokyo_loc, mumbai_loc, zurich_loc, cairo_loc;
+	Zone::Location singapore_loc, nyc_loc, tokyo_loc, mumbai_loc, zurich_loc, cairo_loc;
 	singapore_loc.pollution = 0.55;
 	singapore_loc.government = 0.83;
 	singapore_loc.healthcare = 0.88;

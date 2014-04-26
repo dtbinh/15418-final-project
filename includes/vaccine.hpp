@@ -6,7 +6,7 @@
 class Vaccine {
 
 public:
-	Vaccine(int dna, std::string name, std::string virus, float strength, double cost);
+	Vaccine(int dna, std::string name, std::string virus, float strength, int cost);
 	//~Vaccine();
 
 	void vaccinate(Person person);

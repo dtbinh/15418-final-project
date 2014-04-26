@@ -4,12 +4,12 @@
 #include <stdio.h>
 
 
-void step();
+void step(World* world);
 void print_usage();
 
-main(int argc, char* argv)
+int main(int argc, char* argv)
 {
-	World awholenewworld = new World();
+	World* awholenewworld = new World();
 	bool loop = true;
 
 	/* loop to read input */
@@ -19,28 +19,30 @@ main(int argc, char* argv)
 		std::cin >> key;
 		switch (key) {
 			case 's':
-				step();
+				step(awholenewworld);
 				break;
 			case 'x':
 				loop = false;
 				break;
-			case default:
+			default:
 				print_usage();
 				break;
 		}
 	}
 
+	return 0;
 }
 
-void step() 
+void step(World* world) 
 {
 	float startTime;
 	float endTime;
-	startTime = cycleTimer::currentSeconds();
+	startTime = CycleTimer::currentSeconds();
 
 	/* update all the info of the world */
+	world->step();
 
-	endTime = cycleTimer::currentSeconds();
+	endTime = CycleTimer::currentSeconds();
 	std::cout << "Time in seconds " << endTime - startTime << " ms\n";
 }
 

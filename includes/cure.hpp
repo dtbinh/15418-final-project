@@ -6,7 +6,7 @@
 class Cure {
 
 public:
-	Cure(int dna, std::string name, std::string virus, float strength, double cost);
+	Cure(int dna, std::string name, std::string virus, float strength, int cost);
 	//~cure();
 
 	void cure(Person person);

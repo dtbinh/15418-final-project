@@ -1,5 +1,4 @@
 #include "zone.hpp"
-#include "virus.hpp"
 #include <iostream>
 #include <string>
 #include <stdlib.h>
@@ -17,8 +16,8 @@ public:
 	
 	void step();
 
-	Zone*  get_zone(string name);
-	Virus* get_virus(string name);
+	Zone*  get_zone(std::string name);
+	Virus* get_virus(std::string name);
 	int    get_current_step();
 	
 private:
@@ -28,6 +27,5 @@ private:
 
 	Zone* zones;
 
-	int step;
-
+	int steps;
 };
