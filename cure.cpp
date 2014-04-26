@@ -1,4 +1,6 @@
-Cure::Cure(int dna, string name, string virus, float strength, int cost) {
+#include "includes/cure.hpp"
+
+Cure::Cure(int dna, std::string name, std::string virus, float strength, int cost) {
 	dna = dna;
 	name = name;
 	strength = strength;

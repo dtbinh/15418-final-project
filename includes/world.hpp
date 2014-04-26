@@ -30,4 +30,4 @@ private:
 
 	int step;
 
-}
+};

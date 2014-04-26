@@ -1,27 +1,15 @@
+#include "includes/zone.hpp"
 
-
-// add in attributes for person and location struct. These attributes determine the virus and vaccine transmission rates, amongst other stuff
-struct Person{
-	double net_worth; // how much this person has in monetary terms
-	std::map <string, bool> immune; // set true or false depending on whether person immune to a virus in them
-	int age; // age of the person, between 1-100
-	bool infected;
-	int time_left;
-};
-
-struct Location{
-	float pollution; // percentile value, higher means more percentile
-	float government; // percentile value, lower means more corrupt, slow, useless government
-	float healthcare; // percentile value, level of healthcare system (insurance, doctors, medical technology etc)
-};
-
-
-Zone::Zone(Location loc, string name, int population, double area, bool wealthy) {
+Zone::Zone(Location loc, std::string name, int population, double area, bool wealthy) {
 	name = name;
 	loc = loc;
 	population = population;
 	area = area;
-	viruses = new Virus[3];
+	/* TODO reinitialize the virus stats */
+	viruses.push_back(Virus(1, "HIV", 1.0));
+	viruses.push_back(Virus(2, "Influenza", 2.0));
+	viruses.push_back(Virus(3, "Hepatatis", 3.0));
+
 	// add in a newly create bunch of person structs
 	people = new Person [population];
 
@@ -29,9 +17,8 @@ Zone::Zone(Location loc, string name, int population, double area, bool wealthy)
 	float wealth = 0.0; 
 	// give each person random attributes 
 	for (int i = 0; i < population; i++) {
-		people[i].immune = new std::map<string,bool>;
 		// set person's age randomly between 1-100
-		people[i].age = rand() % 100 + 1;
+		people[i].age = rand() * 100 + 1;
 		people[i].infected = false;
 		people[i].time_left = (100 - people[i].age)*100;
 		// now find a random percentile value for this person's wealth
@@ -72,7 +59,7 @@ double Zone::calculate_wealth() {
 	double sum = 0.0;
 	for (int i = 0; i < population; i++) {
 		// if person is not dead
-		if (people[i] != nullptr) {	
+		if (people[i].dead != true) {	
 			sum += people[i].net_worth;
 		}
 	}
@@ -105,7 +92,7 @@ int Zone::get_population() {
  * function to call when a person dies
  */
 void Zone::person_dies(int i) {
-	people[i] = nullptr;
+	people[i].dead = true;
 	population = population-1;
 }
 

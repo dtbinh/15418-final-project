@@ -1,3 +1,5 @@
+#include "includes/virus.hpp"
+
 Virus::Virus(int dna, string name, float strength) {
 	dna = dna;
 	name = name;

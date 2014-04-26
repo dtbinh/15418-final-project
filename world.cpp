@@ -1,3 +1,6 @@
+#include "includes/world.hpp"
+
+
 World::World() {
 	setup_virus();
 	setup_zones();
