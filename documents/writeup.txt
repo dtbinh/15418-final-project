@@ -1,0 +1,18 @@
+
+Describe the required features you have implemented, and which you have not.
+if you have missing features, be sure to explain how much you accomplished.
+You should detail anything you think we need to know to understand your code.
+
+I COMMENTED MY CODE VERY WELL
+PLEASE READ IT :) :) :)
+(sory, i have 6 mins left before deadline!)
+
+	general idea:
+	used a winged edge algorithm, instead of predecessors and successors i 
+	had 2 faces, left and right, which in turn had pointers to the 3 edges
+	they were part of. Using these two structures, I looped around them and
+	created the odd or even vertices.
+	MY PROBLEM:
+	it only does one subdivision before crashing because not all triangles get
+	created
+	Textures work fine, unless im subdiving (where my problem is :( )
