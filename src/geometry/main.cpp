@@ -63,7 +63,7 @@ bool GeometryApplication::initialize()
     camera->far_clip = 1000.0;
     camera->position = Vector3( 0.0, 0.0, 48 );
     camera->orientation = Quaternion::Identity;
-   // camera->pitch( -PI / 4.0 );
+	camera->default_position = Vector3(0.0, 0.0, 48);
 
     mesh.filename = mesh_filename;
     rv = rv && mesh.load();

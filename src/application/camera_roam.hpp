@@ -37,6 +37,8 @@ private:
     Direction direction[3];
     // the current rotation
     Rotation rotation;
+	Vector3 zoom_dirs[10];
+	int zoom;
 };
 
 } /* _462 */

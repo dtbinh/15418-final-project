@@ -71,6 +71,8 @@ public:
     real_t near_clip;
     // The far clipping plane.
     real_t far_clip;
+
+	Vector3 default_position;
 };
 
 } /* _462 */
