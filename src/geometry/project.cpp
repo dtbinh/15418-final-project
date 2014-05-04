@@ -42,22 +42,15 @@ bool GeometryProject::initialize( const Camera* camera, const MeshData* m, const
 {
 	/* create world */
 	world = new World();
-
+	num_ppl = 10000;
+	running = false;
     mesh = *m;
-	int height;
-	int width;
+	
 	/* initialize texture */
 	unsigned char* text_array;
+	int width, height;
 	glGenTextures(1, &mesh.texture);
 	glBindTexture(GL_TEXTURE_2D, mesh.texture);
-
-	/* Enable a bunch of stuff */
-	glEnable(GL_LIGHTING);
-	glEnable(GL_LIGHT0);
-	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_TEXTURE_2D);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
 	/* Load the texture from image */
 	if (!texture_filename)
@@ -67,11 +60,25 @@ bool GeometryProject::initialize( const Camera* camera, const MeshData* m, const
 	else
 	{
 		text_array = imageio_load_image(texture_filename, &width, &height);
-		gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGBA, width, height, GL_RGBA, 
+		int err = gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGBA, width, height, GL_RGBA, 
 						GL_UNSIGNED_BYTE, text_array);
+		std::cout << "error: " << err << "\n";
+		text_ratio = (real_t)width / height;
 	}
 	
+	/* Enable a bunch of stuff */
+//	glEnable(GL_LIGHTING);
+//	glEnable(GL_LIGHT0);
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_TEXTURE_2D);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	
 	/* Initialize winged edges */
+	people = (Vector3*)calloc(num_ppl, sizeof(Vector3));
+	infected = (Vector3*)calloc(num_ppl, sizeof(Vector3));
+
+	step();
 	mesh.w_edges = (WingedEdge*)calloc(mesh.num_triangles*3,sizeof(WingedEdge));
 	mesh.faces = (Face*)calloc(mesh.num_triangles,sizeof(Face));
 	create_faces();
@@ -116,57 +123,82 @@ void GeometryProject::render( const Camera* camera )
 	real_t ratio = camera->get_aspect_ratio();
 	real_t near = camera->get_near_clip();
 	real_t far = camera->get_far_clip();
-	gluPerspective(fov,ratio,near,far);
+	real_t h = 10; 
+	real_t w = h*text_ratio;
 
+	gluPerspective(fov,ratio,near,far);
 	/* set camera position and where it points */
 	Vector3 p = camera->get_position();
 	Vector3 u = camera->get_up();
-	Vector3 d = camera->get_direction() + p;
-	gluLookAt(p.x,p.y,p.z,d.x,d.y,d.z,u.x,u.y,u.z);
+	Vector3 d = Vector3(0.0, 0.0, -1.0) + p;
+	gluLookAt(p.x,p.y,p.z,d.x,d.y,d.z,0.0,1.0,0.0);
 
 	/* set up light */
 	GLfloat light_pos[] = {p.x,p.y,p.z, 0};
-	glLightfv(GL_LIGHT0, GL_POSITION, light_pos);
+//	glLightfv(GL_LIGHT0, GL_POSITION, light_pos);
 	
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 	/* set up material */
 	if (mesh.texture == NULL)
 	{
-		GLfloat specular[] = {1,0,0,0};
-		GLfloat shininess[] = {10};
-		GLfloat colors[] = {1,.1,.05,0};
-		glShadeModel(GL_SMOOTH);
-		glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, specular);
-		glMaterialfv(GL_FRONT_AND_BACK, GL_SHININESS, shininess);
-		glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, colors);
+		std::cout << "here\n";
 	}
 	else
 	{
+		glEnable(GL_TEXTURE_2D);
 		glClientActiveTexture(mesh.texture);
 		glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 		glBindTexture(GL_TEXTURE_2D, mesh.texture);
-		GLfloat colors[] = {0,0,0,0};
-	//	glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, colors);
+		glBegin (GL_QUADS);
+		glTexCoord2f (0.0, 0.0);
+		glVertex3f (-w, -h, 0.0);
+		glTexCoord2f (1.0, 0.0);
+		glVertex3f (w, -h, 0.0);
+		glTexCoord2f (1.0, 1.0);
+		glVertex3f (w, h, 0.0);
+		glTexCoord2f (0.0, 1.0);
+		glVertex3f (-w, h, 0.0);
+		glEnd ();
+
+		glDisable(GL_TEXTURE_2D);
+/*		glColor3f(1.0, 1.0, 1.0);  
+		glBegin (GL_QUADS);
+		glVertex3f (-w, -h, 0.0);
+		glVertex3f (w, -h, 0.0);
+		glVertex3f (w, h, 0.0);
+		glVertex3f (-w, h, 0.0);
+		glEnd ();
+*/	}
+
+	glPointSize(1.0);
+	glBegin(GL_POINTS);
+	for (int i = 0; i < num_ppl; i++)
+	{
+		glColor3f(infected[i].x, infected[i].y, infected[i].z);
+//		std::cout << i << " " << people[i] << "\n";
+		glVertex3f(people[i].x, people[i].y, people[i].z);
+//		glVertex3f(i, i, 1);
 	}
-
+	glEnd();
 	/* load mesh */
-	glEnableClientState(GL_NORMAL_ARRAY);
+/*	glEnableClientState(GL_COLOR_ARRAY);
 	glEnableClientState(GL_VERTEX_ARRAY);
-	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+//	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 
-	glVertexPointer(3, GL_DOUBLE, sizeof(Vertex), mesh.vertices);
-	glNormalPointer(GL_DOUBLE, sizeof(Vertex), 
-				((char*)mesh.vertices) + sizeof(Vector3));
-	glTexCoordPointer(2, GL_DOUBLE, sizeof(Vertex),
-				((char*)mesh.vertices) + sizeof(Vector3)*2);
+//	glVertexPointer(3, GL_FLOAT, 0, people);
+//	glColorPointer(3, GL_FLOAT, 0, infected);
+//	glNormalPointer(GL_DOUBLE, sizeof(Vertex), 
+//				((char*)mesh.vertices) + sizeof(Vector3));
+//	glTexCoordPointer(2, GL_DOUBLE, sizeof(Vertex),
+//				((char*)mesh.vertices) + sizeof(Vector3)*2);
 
-	glDrawElements(GL_TRIANGLES, mesh.num_triangles*3, GL_UNSIGNED_INT,
-				mesh.triangles);
+	glPointSize(30.0);
+	glDrawArrays(GL_LINES, 0, num_ppl-1);
 
-	glDisableClientState(GL_NORMAL_ARRAY);
+	glDisableClientState(GL_COLOR_ARRAY);
 	glDisableClientState(GL_VERTEX_ARRAY);
-	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+*///	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 	glFlush();
 }
 
@@ -175,7 +207,35 @@ void GeometryProject::render( const Camera* camera )
  */
 void GeometryProject::step()
 {
-	
+	int h = 10; 
+	int w = h*text_ratio;
+
+	/* randomly generate the array */
+	for (int i = 0; i < num_ppl; i++)
+	{
+		//position
+		float x, y, r, g, b;
+		x = ((double)rand()/(RAND_MAX)) * 2*w - w;
+		y = ((double)rand()/(RAND_MAX)) * 2*h - h;
+
+		//color
+		if (rand() % 2)
+		{
+			r = 1.0;
+			g = 0.0;
+			b = 0.0;
+		}
+		else
+		{
+			r = 0.0;
+			g = 1.0;
+			b = 0.0;
+		}
+
+		people[i] = Vector3(x,y,0.1);
+		infected[i] = Vector3(r,g,b);
+	}
+	std::cout << "step complete\n";
 }
 
 /**

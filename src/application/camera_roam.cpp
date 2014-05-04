@@ -86,6 +86,7 @@ void CameraRoamControl::handle_event( const Application* app, const SDL_Event& e
 
     case SDL_MOUSEBUTTONDOWN:
         // enable rotation
+		std::cout << event.button.x << " " << event.button.y << "\n";
         if ( event.button.button == SDL_BUTTON_LEFT )
             rotation = RPITCHYAW;
         else if ( event.button.button == SDL_BUTTON_MIDDLE )
@@ -124,7 +125,12 @@ void CameraRoamControl::update( real_t dt )
         DirectionTable[direction[1]],
         DirectionTable[direction[2]]
     );
-    camera.translate( displacement * dist );
+	Vector3 newvect = camera.get_position() + displacement*dist;
+	if (newvect.z < 50)
+		camera.translate( displacement * dist );
+
+//	std::cout << "pos " << camera.get_position() << "\n";
+//	std::cout << "displ " << displacement * dist << "\n";
 }
 
 }

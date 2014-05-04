@@ -16,7 +16,7 @@ namespace _462 {
 /**********/
 
 static const int WIDTH = 1024;
-static const int HEIGHT = 768;
+static const int HEIGHT = 512;
 static const real_t FPS = 60.0;
 static const char* TITLE = "15462 Project - Geometry";
 
@@ -58,17 +58,17 @@ bool GeometryApplication::initialize()
     // set camera parameters
     Camera* camera = &camera_control.camera;
     camera_control.camera.aspect = real_t( width ) / real_t( height );
-    camera->fov = PI / 4.0;
+    camera->fov = PI/8;
     camera->near_clip = 0.1;
-    camera->far_clip = 100.0;
-    camera->position = Vector3( 0.0, 1.5, 1.5 );
+    camera->far_clip = 1000.0;
+    camera->position = Vector3( 0.0, 0.0, 48 );
     camera->orientation = Quaternion::Identity;
-    camera->pitch( -PI / 4.0 );
+   // camera->pitch( -PI / 4.0 );
 
     mesh.filename = mesh_filename;
     rv = rv && mesh.load();
-    if ( !mesh.has_tcoords )
-        texture_filename = 0;
+//    if ( !mesh.has_tcoords )
+//        texture_filename = 0;
     rv = rv && mesh.create_gl_data();
 
     // copy vertices from loaded mesh
@@ -87,6 +87,7 @@ bool GeometryApplication::initialize()
         }
     }
 
+	std::cout << "init " << texture_filename << "\n";
     rv = rv &&  project.initialize( &camera_control.camera, &meshdata, texture_filename );
 
     return rv;
@@ -171,7 +172,7 @@ int main( int argc, char* argv[] )
 
     app.mesh_filename = argv[1];
     app.texture_filename = argc > 2 ? argv[2] : 0;
-
+	std::cout << "main " << app.texture_filename << "\n";
     // start a new application
     return Application::start_application( &app, WIDTH, HEIGHT, FPS, TITLE );
 }

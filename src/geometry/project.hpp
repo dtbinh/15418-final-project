@@ -136,6 +136,12 @@ private:
 
     MeshData mesh;
 	World* world;
+
+	real_t text_ratio;
+
+	Vector3* people;
+	Vector3*  infected;
+	int num_ppl;
     // TODO add any other private members/functions here.
 
     // since this has no meaningful assignment/copy, prevent the compiler from
