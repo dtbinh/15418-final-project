@@ -105,6 +105,9 @@ public:
 	/*** added by elena ***/
 	bool running;	//check if project just running
 	void step();    //advance a step
+	void generate_points(Vector3 *coordinates, Vector3 *color, Zone* zone, Vector2 *center);
+	void update_person(double area, Person* person);
+	bool inArea(double radius, Vector2 vec);
 	/********/
 
 
@@ -140,8 +143,13 @@ private:
 	real_t text_ratio;
 
 	Vector3* people;
+	Zone* nyc;
 	Vector3*  infected;
 	int num_ppl;
+	Vector2 directions[4] = {Vector2(0.0, 1.0),
+				  Vector2(0.0, -1.0),
+				  Vector2(1.0, 0.0),
+				  Vector2(-1.0, 0.0)};
     // TODO add any other private members/functions here.
 
     // since this has no meaningful assignment/copy, prevent the compiler from

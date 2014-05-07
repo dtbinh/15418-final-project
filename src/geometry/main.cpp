@@ -60,10 +60,10 @@ bool GeometryApplication::initialize()
     camera_control.camera.aspect = real_t( width ) / real_t( height );
     camera->fov = PI/8;
     camera->near_clip = 0.1;
-    camera->far_clip = 1000.0;
-    camera->position = Vector3( 0.0, 0.0, 48 );
+    camera->far_clip = 50000.0;
+    camera->position = Vector3( 0.0, 0.0, 2400 );
     camera->orientation = Quaternion::Identity;
-	camera->default_position = Vector3(0.0, 0.0, 48);
+	camera->default_position = Vector3(0.0, 0.0, 2400);
 
     mesh.filename = mesh_filename;
     rv = rv && mesh.load();

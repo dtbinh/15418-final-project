@@ -97,15 +97,14 @@ void CameraRoamControl::handle_event( const Application* app, const SDL_Event& e
 			Vector3 input = Vector3(event.button.x, event.button.y, 0.0);
 			window_to_world(&moveto, &input , width, height);
 
-			moveto = moveto / distance(moveto, camera.default_position) * 5;
-			moveto.z = -5;
+			moveto = moveto / distance(moveto, camera.default_position) * 25;
+			moveto.z = -25;
 
 			Vector3 newvect = camera.get_position() + moveto;
-			if (newvect.z < 50 && newvect.z > 1)
+			if (newvect.z < 2500 && newvect.z > 1)
 			{
 				zoom_dirs[zoom] = moveto;
 				zoom++;
-				std::cout << moveto << " up\n";
 				camera.translate(moveto);
 			}
 		}
@@ -114,7 +113,6 @@ void CameraRoamControl::handle_event( const Application* app, const SDL_Event& e
 			if (zoom > 0)
 			{
 				zoom--;
-				std::cout << zoom_dirs[zoom]*-1 << " down\n";
 				camera.translate(zoom_dirs[zoom]*-1);
 			}
 		}
@@ -148,7 +146,7 @@ void CameraRoamControl::update( real_t dt )
         DirectionTable[direction[2]]
     );
 	Vector3 newvect = camera.get_position() + displacement*dist;
-	if (newvect.z < 50)
+	if (newvect.z < 2500)
 		camera.translate( displacement * dist );
 
 //	std::cout << "pos " << camera.get_position() << "\n";
@@ -159,7 +157,7 @@ void window_to_world(Vector3 *ret, Vector3 *coord, int w, int h)
 {
 	Vector3 origin = Vector3(w/2.0, h/2.0, 0.0);
 	*coord = *coord - origin;
-	*ret = Vector3(coord->x / (w/2) * 20, -coord->y/ (h/2) * 10, 0.0);
+	*ret = Vector3(coord->x / (w/2) * 1000, -coord->y/ (h/2) * 500, 0.0);
 }
 
 }

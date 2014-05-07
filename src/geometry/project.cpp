@@ -11,6 +11,9 @@
 #include "application/imageio.hpp"
 #include <assert.h>
 #include <math.h>
+
+#define H 500
+#define W 1000
 /*
    A namespace declaration. All project files use this namespace.
    Add this declaration (and its closing) to all source/headers you create.
@@ -44,7 +47,7 @@ bool GeometryProject::initialize( const Camera* camera, const MeshData* m, const
 	world = new World();
 	num_ppl = 10000;
 	running = false;
-    mesh = *m;
+
 	
 	/* initialize texture */
 	unsigned char* text_array;
@@ -67,32 +70,19 @@ bool GeometryProject::initialize( const Camera* camera, const MeshData* m, const
 	}
 	
 	/* Enable a bunch of stuff */
-//	glEnable(GL_LIGHTING);
-//	glEnable(GL_LIGHT0);
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_TEXTURE_2D);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	
-	/* Initialize winged edges */
-	people = (Vector3*)calloc(num_ppl, sizeof(Vector3));
-	infected = (Vector3*)calloc(num_ppl, sizeof(Vector3));
+	/* initialize people */
+
+	nyc = new Zone(NULL, "New York City", 100, 1213.4,true);
+	int pop = nyc -> get_population();
+	people = (Vector3*)calloc(pop, sizeof(Vector3));
+	infected = (Vector3*)calloc(pop, sizeof(Vector3));
 
 	step();
-	mesh.w_edges = (WingedEdge*)calloc(mesh.num_triangles*3,sizeof(WingedEdge));
-	mesh.faces = (Face*)calloc(mesh.num_triangles,sizeof(Face));
-	create_faces();
-	assert(mesh.w_edges);
-	/* initialize the adjacent vertices vector for each vertex */
-	for (int i = 0; i < mesh.num_vertices; i++)
-	{
-		mesh.vertices[i].adj_v = (std::vector<unsigned int>*)
-						calloc(1,sizeof(std::vector<unsigned int>));
-	}
-	init_winged_edge();
-
-
-    // TODO opengl initialization code
     return true;
 }
 
@@ -102,8 +92,6 @@ bool GeometryProject::initialize( const Camera* camera, const MeshData* m, const
 void GeometryProject::destroy()
 {
   // TODO any cleanup code
-  free(mesh.w_edges);
-  free(mesh.faces);
 }
 
 /**
@@ -123,8 +111,6 @@ void GeometryProject::render( const Camera* camera )
 	real_t ratio = camera->get_aspect_ratio();
 	real_t near = camera->get_near_clip();
 	real_t far = camera->get_far_clip();
-	real_t h = 10; 
-	real_t w = h*text_ratio;
 
 	gluPerspective(fov,ratio,near,far);
 	/* set camera position and where it points */
@@ -132,10 +118,6 @@ void GeometryProject::render( const Camera* camera )
 	Vector3 u = camera->get_up();
 	Vector3 d = Vector3(0.0, 0.0, -1.0) + p;
 	gluLookAt(p.x,p.y,p.z,d.x,d.y,d.z,0.0,1.0,0.0);
-
-	/* set up light */
-	GLfloat light_pos[] = {p.x,p.y,p.z, 0};
-//	glLightfv(GL_LIGHT0, GL_POSITION, light_pos);
 	
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
@@ -152,53 +134,36 @@ void GeometryProject::render( const Camera* camera )
 		glBindTexture(GL_TEXTURE_2D, mesh.texture);
 		glBegin (GL_QUADS);
 		glTexCoord2f (0.0, 0.0);
-		glVertex3f (-w, -h, 0.0);
+		glVertex3f (-W, -H, 0.0);
 		glTexCoord2f (1.0, 0.0);
-		glVertex3f (w, -h, 0.0);
+		glVertex3f (W, -H, 0.0);
 		glTexCoord2f (1.0, 1.0);
-		glVertex3f (w, h, 0.0);
+		glVertex3f (W, H, 0.0);
 		glTexCoord2f (0.0, 1.0);
-		glVertex3f (-w, h, 0.0);
+		glVertex3f (-W, H, 0.0);
 		glEnd ();
 
 		glDisable(GL_TEXTURE_2D);
-/*		glColor3f(1.0, 1.0, 1.0);  
-		glBegin (GL_QUADS);
-		glVertex3f (-w, -h, 0.0);
-		glVertex3f (w, -h, 0.0);
-		glVertex3f (w, h, 0.0);
-		glVertex3f (-w, h, 0.0);
-		glEnd ();
-*/	}
+	}
 
-	glPointSize(1.0);
+	glPointSize(3.0);
+	
 	glBegin(GL_POINTS);
-	for (int i = 0; i < num_ppl; i++)
+	glColor3f(1.0,0.0,0.0);
+	glVertex3f(1.15 * H, 0.016 * H, 1); //singapore
+	glVertex3f(-0.82 * H, 0.4503 * H, 1); //nyc
+	glVertex3f(0.10 * H, 0.53 * H, 1);	//zurich
+	glVertex3f(0.346 * H, 0.33 * H, 1); // cairo
+	glVertex3f(0.809 * H, 0.208 * H, 1);  //mumbai
+	glVertex3f(1.55 * H, 0.39 * H, 1); //tokyo
+
+
+	for (int i = 0; i < nyc->get_population(); i++)
 	{
 		glColor3f(infected[i].x, infected[i].y, infected[i].z);
-//		std::cout << i << " " << people[i] << "\n";
 		glVertex3f(people[i].x, people[i].y, people[i].z);
-//		glVertex3f(i, i, 1);
 	}
 	glEnd();
-	/* load mesh */
-/*	glEnableClientState(GL_COLOR_ARRAY);
-	glEnableClientState(GL_VERTEX_ARRAY);
-//	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-
-//	glVertexPointer(3, GL_FLOAT, 0, people);
-//	glColorPointer(3, GL_FLOAT, 0, infected);
-//	glNormalPointer(GL_DOUBLE, sizeof(Vertex), 
-//				((char*)mesh.vertices) + sizeof(Vector3));
-//	glTexCoordPointer(2, GL_DOUBLE, sizeof(Vertex),
-//				((char*)mesh.vertices) + sizeof(Vector3)*2);
-
-	glPointSize(30.0);
-	glDrawArrays(GL_LINES, 0, num_ppl-1);
-
-	glDisableClientState(GL_COLOR_ARRAY);
-	glDisableClientState(GL_VERTEX_ARRAY);
-*///	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 	glFlush();
 }
 
@@ -207,35 +172,11 @@ void GeometryProject::render( const Camera* camera )
  */
 void GeometryProject::step()
 {
-	int h = 10; 
-	int w = h*text_ratio;
-
+	int num_sick = 0;
+	Vector2 c = Vector2(-0.82 * H, 0.4503 * H); //nyc
+	generate_points(people, infected, nyc, &c);
 	/* randomly generate the array */
-	for (int i = 0; i < num_ppl; i++)
-	{
-		//position
-		float x, y, r, g, b;
-		x = ((double)rand()/(RAND_MAX)) * 2*w - w;
-		y = ((double)rand()/(RAND_MAX)) * 2*h - h;
-
-		//color
-		if (rand() % 2)
-		{
-			r = 1.0;
-			g = 0.0;
-			b = 0.0;
-		}
-		else
-		{
-			r = 0.0;
-			g = 1.0;
-			b = 0.0;
-		}
-
-		people[i] = Vector3(x,y,0.1);
-		infected[i] = Vector3(r,g,b);
-	}
-	std::cout << "step complete\n";
+	std::cout << "Number of infected: " << num_sick << "\n";
 }
 
 /**
@@ -243,51 +184,56 @@ void GeometryProject::step()
  */
 void GeometryProject::subdivide()
 {
-	/* increase the size of the vertex array */
-	int new_size = mesh.num_vertices+mesh.num_w_edges;
-	mesh.vertices = (Vertex*)realloc(mesh.vertices,
-			(new_size)*sizeof(Vertex));
-
-	generate_odds();
-	/* reinitialize the adjacent vertices vector for each old vertex */
-	for (int i = 0; i < mesh.num_vertices; i++)
-	{
-		mesh.vertices[i].adj_v->clear();
-	}
-	/* initialize the adjacent vertices vector for each new vertex */
-	for (int i = mesh.num_vertices; i < new_size; i++)
-	{
-		mesh.vertices[i].adj_v = (std::vector<unsigned int>*)
-						calloc(1,sizeof(std::vector<unsigned int>));
-	}
-
-	/* increase the size of triangle array */
-	mesh.triangles = (Triangle*)realloc(mesh.triangles, 
-			mesh.num_triangles*4*sizeof(Triangle));
-
-	generate_triangles();
-
-	/* once the triangles were generated, create the faces */
-	mesh.num_triangles *= 4;
-	mesh.faces = (Face*)realloc(mesh.faces, mesh.num_triangles*sizeof(Face));
-	create_faces();
-
-	/* increase the size of winged edge array */
-	mesh.w_edges = (WingedEdge*)realloc(mesh.w_edges,
-			mesh.num_triangles*3*sizeof(WingedEdge));
-	/*re create edges */
-	init_winged_edge();
-
-	/* once the new edges were created, use them to recalculate even vertices */
-	generate_evens();
-	mesh.num_vertices = new_size;
-
-	/* update each vertex's normals */
-	calc_norms();
-	
+		
 }
 
+/* for all people in a zone with area (msq), update the person's position and convert the new coordinates
+ * to real world coordinates 
+ */
+void GeometryProject::generate_points(Vector3 *coordinates, Vector3 *color, Zone* zone, Vector2 *center)
+{
+	int popul = zone->get_population();
+	std::cout << popul << " enerate\n";
+	double area = zone->get_area();
+	for (int i = 0; i < popul; i++)
+	{
+		Person p = zone->get_person(i);
+		update_person(area, &p);
+		coordinates[i].x = center->x + (p.x  ); 
+		coordinates[i].y = center->y + (p.y  ); 
+		coordinates[i].z = 1.0;
+		if (p.infected == true)
+			color[i] = Vector3(0.0, 0.0, 0.0);
+		else
+			color[i] = Vector3(1.0, 1.0, 1.0);
 
+	}
+}
+
+/** update a persons zone coordinates based on randomly selecting a direction and checking if 
+ * the person can go to that position (if within zone's bounds 
+ */
+void GeometryProject::update_person(double area, Person* person)
+{
+	//pick a random direction
+	int index = rand() % 4;
+	double radius = sqrt(area/ PI);
+	Vector2 current = Vector2(person->x, person->y);
+	Vector2 next = current + directions[index];
+	if (inArea(radius, next))
+	{
+		person->x = next.x;
+		person->y = next.y;
+	}
+}
+
+/** checks if the vector is inside the radius **/
+bool GeometryProject::inArea(double radius, Vector2 vec)
+{
+	if (length(vec) <= radius)
+		return true;
+	return false;
+}
 /**** HELPER FUNCTIONS ****/
 
 /* ~~~~ structure - related functions ~~~~ */
@@ -297,89 +243,6 @@ void GeometryProject::subdivide()
  */
 void GeometryProject::init_winged_edge()
 {
-	mesh.num_w_edges = 0;
-	/* loop through triangles to create edges */
-	for (int i = 0; i < mesh.num_triangles; i++)
-	{
-		int num_e = mesh.num_w_edges-1;
-		/* check if the 3 triangle edges already exist in the edge array */
-		unsigned int edge1 = exists(&mesh.triangles[i].vertices[0],
-						&mesh.triangles[i].vertices[1]);
-		unsigned int edge2 = exists(&mesh.triangles[i].vertices[1],
-						&mesh.triangles[i].vertices[2]);
-		unsigned int edge3 = exists(&mesh.triangles[i].vertices[2],
-						&mesh.triangles[i].vertices[0]);
-		/* if the edge hasn't already been created 
-		 * initialize it */
-		if (signed(edge1) > num_e)
-		{
-			/* set start and end vertices */
-			mesh.w_edges[edge1].start = mesh.triangles[i].vertices[0];
-			mesh.w_edges[edge1].end = mesh.triangles[i].vertices[1];
-			mesh.w_edges[edge1].odd_vtex = 0;
-			/* add the corresponding adjacent vertices */
-			mesh.vertices[mesh.w_edges[edge1].end].adj_v->push_back(
-							mesh.w_edges[edge1].start);
-			mesh.vertices[mesh.w_edges[edge1].start].adj_v->push_back(
-							mesh.w_edges[edge1].end);
-			/* set triangle and the triangle's succ/pred pointers */
-			mesh.w_edges[edge1].left_tri = &mesh.faces[i];
-			mesh.w_edges[edge1].left_tri->is_sub = 0;
-		}
-		else
-		{
-			mesh.w_edges[edge1].right_tri = &mesh.faces[i];
-			mesh.w_edges[edge1].right_tri->is_sub = 0;
-		}
-		if (signed(edge2) > num_e)
-		{
-			/* set start and end vertices */
-			mesh.w_edges[edge2].start = mesh.triangles[i].vertices[1];
-			mesh.w_edges[edge2].end = mesh.triangles[i].vertices[2];
-			mesh.w_edges[edge2].odd_vtex = 0;
-
-			mesh.vertices[mesh.w_edges[edge2].end].adj_v->push_back(
-							mesh.w_edges[edge2].start);
-			mesh.vertices[mesh.w_edges[edge2].start].adj_v->push_back(
-							mesh.w_edges[edge2].end);
-			/* set triangle and succ/pred pointers */
-			mesh.w_edges[edge2].left_tri = &mesh.faces[i];
-			mesh.w_edges[edge2].left_tri->is_sub = 0;
-		}
-		else
-		{
-			mesh.w_edges[edge2].right_tri = &mesh.faces[i];
-			mesh.w_edges[edge2].right_tri->is_sub = 0;
-		}
-		if (signed(edge3) > num_e)
-		{
-			/* set start and end vertices */
-			mesh.w_edges[edge3].start = mesh.triangles[i].vertices[2];
-			mesh.w_edges[edge3].end = mesh.triangles[i].vertices[0];
-			mesh.w_edges[edge3].odd_vtex = 0;
-
-			mesh.vertices[mesh.w_edges[edge3].end].adj_v->push_back(
-							mesh.w_edges[edge3].start);
-			mesh.vertices[mesh.w_edges[edge3].start].adj_v->push_back(
-							mesh.w_edges[edge3].end);
-
-			/* set triangle and succ/pred pointers */
-			mesh.w_edges[edge3].left_tri = &mesh.faces[i];
-			mesh.w_edges[edge3].left_tri->is_sub = 0; 
-		}
-		else
-		{
-			mesh.w_edges[edge3].right_tri = &mesh.faces[i];
-			mesh.w_edges[edge3].right_tri->is_sub = 0;
-		}	
-		/* add these three edges into the current face */
-		mesh.faces[i].e1 = &mesh.w_edges[edge1];
-		mesh.faces[i].e2 = &mesh.w_edges[edge2];
-		mesh.faces[i].e3 = &mesh.w_edges[edge3];
-
-	}
-
-
 }
 
 /* generate_triangles: loops through all the edges, calculates all the new
@@ -388,49 +251,7 @@ void GeometryProject::init_winged_edge()
  */
 void GeometryProject::generate_triangles()
 {
-	int tri_index = 0; /*index into triangle array */
-	for (int i = 0; i < mesh.num_triangles; i++)
-	{
-		/* divide the current face if hasnt been subdivided already*/
-		if (!mesh.faces[i].is_sub)
-		{
-			/* start with any of the 3 edges */
-			/* find the start, end and the odd vertex' indices into the array */
-			unsigned int start = mesh.faces[i].e1->start;
-			unsigned int end = mesh.faces[i].e1->end;
-			unsigned int odd = mesh.faces[i].e1->odd_vtex;
-			/* get the other two odd vertices */
-			unsigned int pred = mesh.faces[i].e2->odd_vtex;
-			unsigned int succ = mesh.faces[i].e3->odd_vtex;
-			
-
-			/* get the even vertex of this triangle
-			 * index into the vertex array*/
-			unsigned int even = end_or_start(start, mesh.faces[i].e3);
-
-			/* create the 4 triangles */
-	/*1*/	mesh.triangles[tri_index].vertices[0] = odd;/*odd*/
-			mesh.triangles[tri_index].vertices[1] = pred; /*pre_odd*/
-			mesh.triangles[tri_index].vertices[2] = succ; /*suc_odd*/
-			tri_index++;
-	/*2*/	mesh.triangles[tri_index].vertices[0] = odd; /*odd*/
-			mesh.triangles[tri_index].vertices[1] = end;
-			mesh.triangles[tri_index].vertices[2] = pred; /*pre_odd*/
-			tri_index++;
-	/*3*/	mesh.triangles[tri_index].vertices[0] = odd; /*odd*/
-			mesh.triangles[tri_index].vertices[1] = succ; /*suc_odd*/
-			mesh.triangles[tri_index].vertices[2] = start; 
-			tri_index++;
-	/*4*/	mesh.triangles[tri_index].vertices[0] = succ; /*suc_odd*/
-			mesh.triangles[tri_index].vertices[1] = pred; /*pre_odd*/
-			mesh.triangles[tri_index].vertices[2] = even;
-			tri_index++;
-
-			/* set that this face has been subdivided already */
-			mesh.faces[i].is_sub = 1;
-		}
-	}
-
+	
 }
 
 /* create_faces: loops through all the triangles, and sets the corresponding
@@ -439,16 +260,7 @@ void GeometryProject::generate_triangles()
  */
 void GeometryProject::create_faces()
 {
-	for (int i = 0; i < mesh.num_triangles; i++)
-	{
-		mesh.faces[i].tri = &mesh.triangles[i];
-		mesh.faces[i].is_sub = 0;
-		mesh.faces[i].e1 = NULL;
-		mesh.faces[i].e2 = NULL;
-		mesh.faces[i].e3 = NULL;
 	}
-
-}
 
 /* ~~~~ subdivision - related functions ~~~~ */
 
@@ -458,89 +270,18 @@ void GeometryProject::create_faces()
  */
 void GeometryProject::generate_odds()
 {
-	for (int i = 0; i < mesh.num_w_edges; i ++)
-	{
-		if (mesh.w_edges[i].odd_vtex < mesh.num_vertices)
-		{
-			mesh.w_edges[i].odd_vtex = mesh.num_vertices+i;
-
-			/* boundary edge case * 
-			 * if it's a boundary, calculate the odd vertex using only its 
-			 * start and end vertices */
-			if (is_boundary(&mesh.w_edges[i]))
-			{
-				Vector3 a = mesh.vertices[mesh.w_edges[i].start].position;
-				Vector3 b = mesh.vertices[mesh.w_edges[i].end].position;
-				mesh.vertices[mesh.num_vertices+i].position = a*0.5 + b*0.5;
-			}
-			/* otherwise get the 4 adjacent vertices and calculate it that way */
-			else
-			{
-				Vector3 a = mesh.vertices[mesh.w_edges[i].start].position;
-				Vector3 b = mesh.vertices[mesh.w_edges[i].end].position;
-
-				Face* left = mesh.w_edges[i].left_tri;
-				Face* right = mesh.w_edges[i].right_tri;
-
-				Vector3 c = mesh.vertices[get_even_vtex(&mesh.w_edges[i], left)].position;
-				Vector3 d = mesh.vertices[get_even_vtex(&mesh.w_edges[i], right)].position;
-				mesh.vertices[mesh.num_vertices+i].position = a*3.0/8 + b*3.0/8
-														+ (c+d)*1.0/8;
-			}
-
-		}
-	}
 
 }
 
 unsigned int GeometryProject::get_even_vtex(WingedEdge* curr, Face* face)
 {
-	if (face->e1 == curr)
-		return end_or_start(curr->start, face->e3);
-	else if (face->e2 == curr)
-		return end_or_start(curr->start, face->e3);
-	else
-		return end_or_start(curr->start, face->e1);
+	return 0;
 }
 /* generate_evens: loops through all the edges, calculates and sets all the odd
  *				  vertices of each edge.
  */
 void GeometryProject::generate_evens()
 {
-	for (int i = 0; i < mesh.num_w_edges; i++)
-	{
-		/* since i add the odd vertices to the end of the vertex array, I
-		 * know that any index prior to the addition is the original vertex */
-		if (mesh.w_edges[i].start < mesh.num_vertices)
-		{
-			int count = mesh.vertices[mesh.w_edges[i].start].adj_v->size();
-
-			if (!is_boundary(&mesh.w_edges[i]))
-			{	
-				float beta = (1.0/(count))*(5.0/8 -
-						pow(3.0/8+1.0/4*cos(2*3.14159/count), 2));
-				Vector3 sum = mesh.vertices[mesh.vertices[mesh.w_edges[i].start].adj_v->at(0)].position;
-				for (int j = 1; j < count; j++)
-				{
-					unsigned int index = mesh.vertices[mesh.w_edges[i].start].adj_v->at(j);
-					sum += mesh.vertices[index].position;
-				}
-				Vector3 result = (1 - beta*count) *
-					mesh.vertices[mesh.w_edges[i].start].position + beta*sum;
-				mesh.vertices[mesh.w_edges[i].start].position = result;
-			}
-			else
-			{
-				unsigned int index1 = mesh.vertices[mesh.w_edges[i].start].adj_v->at(0);
-				unsigned int index2 = mesh.vertices[mesh.w_edges[i].start].adj_v->at(1);
-				Vector3 sum = mesh.vertices[index1].position * 1.0/8 +
-							mesh.vertices[index2].position * 1.0/8;
-				Vector3 result = mesh.vertices[mesh.w_edges[i].start].position*3.0/4
-								+ sum;
-				mesh.vertices[mesh.w_edges[i].start].position = result;
-			}
-		}
-	}
 }
 
 /* ~~~~ other helper functions ~~~~ */
@@ -560,21 +301,7 @@ void GeometryProject::generate_evens()
  */
 unsigned int GeometryProject::exists(unsigned int* start, unsigned int* end)
 {
-	Vector3 s = mesh.vertices[*start].position;
-	Vector3 e = mesh.vertices[*end].position;
-	
-	for (int i = 0; i < mesh.num_w_edges; i ++)
-	{
-		if ((mesh.vertices[mesh.w_edges[i].start].position == e &&
-				mesh.vertices[mesh.w_edges[i].end].position == s) ||
-				(mesh.vertices[mesh.w_edges[i].start].position == s &&
-				mesh.vertices[mesh.w_edges[i].end].position == e))
-			return i;
-	}
-	/* update the total number of edges because if it reaches this point, the
-	 * edge was not found and is going to be created anyway */
-	mesh.num_w_edges++;
-	return mesh.num_w_edges-1;
+	return 0;
 }
 
 /*  end_or_start: because the order of the starting and ending vertices
@@ -592,11 +319,8 @@ unsigned int GeometryProject::exists(unsigned int* start, unsigned int* end)
  */
 unsigned int GeometryProject::end_or_start(unsigned int curr, WingedEdge* edge)
 {
-	if (curr != edge->start)
-		return edge->start;
-	else
-		return edge->end;
-}
+	return 0;
+	}
 
 /*  is_boundary: checks whether the given edge is a boundary edge or not
  *    Parameters:
@@ -606,7 +330,7 @@ unsigned int GeometryProject::end_or_start(unsigned int curr, WingedEdge* edge)
  */
 bool GeometryProject::is_boundary(WingedEdge* w_edge)
 {
-	return (w_edge->right_tri == NULL || w_edge->left_tri == NULL);
+	return true;
 }
 
 /* calc_norms: Calculates the normals of the vertices and stores them into a
@@ -614,30 +338,6 @@ bool GeometryProject::is_boundary(WingedEdge* w_edge)
  */
 void GeometryProject::calc_norms()
 {
-	Triangle* tris = mesh.triangles;
-	Vertex* vtex = mesh.vertices;
-	int nums_t = mesh.num_triangles;
-	int nums_v = mesh.num_vertices;
-	for (int i = 0; i < nums_t; i++)
-	{
-		/* get vectors from vertices */
-		Triangle curr_tri = tris[i];
-		Vector3 a = vtex[curr_tri.vertices[0]].position - 
-			vtex[curr_tri.vertices[1]].position;
-		Vector3 b = vtex[curr_tri.vertices[2]].position - 
-			vtex[curr_tri.vertices[1]].position;
-
-		/* calculate triangle normal */
-		Vector3 norm = cross(b,a);
-		norm = normalize(norm);
-		/* add the normal to the corresponding vertices normals */
-		for (int j = 0; j < 3; j++)
-			vtex[curr_tri.vertices[j]].normal += norm;
-
-	}
-	/* normalize the normal array */
-	for (int i = 0; i < nums_v; i++)
-		vtex[i].normal = normalize(vtex[i].normal);
 }
 
 } /* _462 */
