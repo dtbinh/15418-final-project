@@ -44,6 +44,7 @@ public:
 	void set_population(int size);
 	int get_initial_population();
 	int get_population();
+	double get_area();
 	Location get_location();
 
 	// functions to access a person and modify their trait

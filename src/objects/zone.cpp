@@ -110,6 +110,13 @@ int Zone::get_initial_population() {
 	return this->initial_population;
 }
 
+/*
+ * gets the area in km squared
+ */
+double Zone::get_area() {
+	return this->area;
+}
+
 
 /*
  * gets the current population of the zone

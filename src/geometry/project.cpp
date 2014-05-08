@@ -77,11 +77,11 @@ bool GeometryProject::initialize( const Camera* camera, const MeshData* m, const
 	
 	/* initialize people */
 
-	nyc = new Zone(NULL, "New York City", 100, 1213.4,true);
+/*	nyc = new Zone(NULL, "New York City", 100, 1213.4,true);
 	int pop = nyc -> get_population();
 	people = (Vector3*)calloc(pop, sizeof(Vector3));
 	infected = (Vector3*)calloc(pop, sizeof(Vector3));
-
+*/
 	step();
     return true;
 }
@@ -199,14 +199,17 @@ void GeometryProject::generate_points(Vector3 *coordinates, Vector3 *color, Zone
 	{
 		Person p = zone->get_person(i);
 		update_person(area, &p);
-		coordinates[i].x = center->x + (p.x  ); 
-		coordinates[i].y = center->y + (p.y  ); 
+		coordinates[i].x = center->x + (p.position_x  ); 
+		coordinates[i].y = center->y + (p.position_y  ); 
 		coordinates[i].z = 1.0;
-		if (p.infected == true)
-			color[i] = Vector3(0.0, 0.0, 0.0);
-		else
-			color[i] = Vector3(1.0, 1.0, 1.0);
-
+		Vector3 c = Vector3(0.0, 0.0, 0.0);
+		if (p.infected["HIV"].first == true)
+			c.x = 0.5;
+		if (p.infected["Flu"].first == true)
+			c.y = 0.5;
+		if (p.infected["Ebola"].first == true)
+			c.z = 0.5;
+		color[i] = c;
 	}
 }
 
@@ -218,12 +221,12 @@ void GeometryProject::update_person(double area, Person* person)
 	//pick a random direction
 	int index = rand() % 4;
 	double radius = sqrt(area/ PI);
-	Vector2 current = Vector2(person->x, person->y);
+	Vector2 current = Vector2(person->position_x, person->position_y);
 	Vector2 next = current + directions[index];
 	if (inArea(radius, next))
 	{
-		person->x = next.x;
-		person->y = next.y;
+		person->position_x = next.x;
+		person->position_y = next.y;
 	}
 }
 
