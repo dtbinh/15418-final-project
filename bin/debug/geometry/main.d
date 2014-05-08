@@ -11,6 +11,8 @@ bin/debug/geometry/main.o: src/geometry/main.cpp \
  /afs/andrew.cmu.edu/usr18/efeldman/private/15-462/finalproject/src/objects/zone.hpp \
  /afs/andrew.cmu.edu/usr18/efeldman/private/15-462/finalproject/src/objects/virus.hpp \
  /afs/andrew.cmu.edu/usr18/efeldman/private/15-462/finalproject/src/objects/person.hpp \
+ /afs/andrew.cmu.edu/usr18/efeldman/private/15-462/finalproject/src/objects/cure.hpp \
+ /afs/andrew.cmu.edu/usr18/efeldman/private/15-462/finalproject/src/objects/vaccine.hpp \
  /afs/andrew.cmu.edu/usr18/efeldman/private/15-462/finalproject/src/scene/mesh.hpp
 
 /afs/andrew.cmu.edu/usr18/efeldman/private/15-462/finalproject/src/application/application.hpp:
@@ -36,5 +38,9 @@ bin/debug/geometry/main.o: src/geometry/main.cpp \
 /afs/andrew.cmu.edu/usr18/efeldman/private/15-462/finalproject/src/objects/virus.hpp:
 
 /afs/andrew.cmu.edu/usr18/efeldman/private/15-462/finalproject/src/objects/person.hpp:
+
+/afs/andrew.cmu.edu/usr18/efeldman/private/15-462/finalproject/src/objects/cure.hpp:
+
+/afs/andrew.cmu.edu/usr18/efeldman/private/15-462/finalproject/src/objects/vaccine.hpp:
 
 /afs/andrew.cmu.edu/usr18/efeldman/private/15-462/finalproject/src/scene/mesh.hpp:
