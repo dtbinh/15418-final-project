@@ -23,9 +23,11 @@ endif
 CURR_DIR = $(shell pwd)
 
 # global compiler flags
-CXX = g++
-CXXFLAGS += -Wall -ansi -pedantic -I"$(CURR_DIR)/$(SRC_DIR)"
-LDFLAGS = -lGL -lGLU -lSDLmain -lSDL -lpng
+CXX = g++ -m64 
+CXXFLAGS += -Wall -ansi -pedantic -I"$(CURR_DIR)/$(SRC_DIR)" -I/usr/local/cuda/include/ -L/usr/local/cuda/lib64/
+LDFLAGS =-lcudart -lGL -lGLU -lSDLmain -lSDL -lpng  
+NVCC=nvcc
+NVCCFLAGS=-03 -m64
 
 # object directories, mode flags
 
@@ -75,11 +77,14 @@ $(OBJ_DIR)/%.d: $(SRC_DIR)/%.cpp
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
+$(OBJ_DIR)/%.o: %.cu
+	$(NVCC) $(NVCCFLAGS) -c -o $@ $<
+
 ifneq ($(MAKECMDGOALS),clean)
 -include $(DEPS_FULL)
 endif
 
 $(OBJ_DIR)/$(TARGET).exe: $(OBJS_FULL)
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ $^
+	$(CXX) $(CXXFLAGS) $(LDFLAGS)-o $@ $^ 
 endif
 

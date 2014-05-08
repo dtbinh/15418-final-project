@@ -31,7 +31,7 @@ public:
 		float healthcare; // percentile value, level of healthcare system (insurance, doctors, medical technology etc)
 	} loc;
 
-	Zone(Location loc, std::string name, int population, double area, bool wealthy);
+	Zone(Location loc, std::string name, int population, double area, float x, float y, bool wealthy);
 	Zone();
 	~Zone();
 
@@ -44,7 +44,10 @@ public:
 	void set_population(int size);
 	int get_initial_population();
 	int get_population();
+	double get_area();
 	Location get_location();
+
+	float x, y; //cartesian location coordinates
 
 	// functions to access a person and modify their trait
 	int get_total_dead();

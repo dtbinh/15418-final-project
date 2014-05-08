@@ -73,6 +73,7 @@ public:
     real_t far_clip;
 
 	Vector3 default_position;
+	int zoom;
 };
 
 } /* _462 */

@@ -2,7 +2,8 @@
 
 Zone::Zone() {}
 Zone::~Zone() {}
-Zone::Zone(Location location, std::string name, int population, double area, bool wealthy) {
+Zone::Zone(Location location, std::string name, int population, double area, float x, float y,
+		   bool wealthy) {
 	this->name = name;
 	this->loc = location;
 	this->initial_population = population;
@@ -108,6 +109,13 @@ void Zone::set_population(int size) {
  */
 int Zone::get_initial_population() {
 	return this->initial_population;
+}
+
+/*
+ * gets the area in km squared
+ */
+double Zone::get_area() {
+	return this->area;
 }
 
 

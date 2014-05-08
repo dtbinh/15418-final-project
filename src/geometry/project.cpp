@@ -12,6 +12,10 @@
 #include <assert.h>
 #include <math.h>
 
+#include <cuda.h>
+#include <cuda_runtime.h>
+
+
 #define H 500
 #define W 1000
 /*
@@ -45,9 +49,9 @@ bool GeometryProject::initialize( const Camera* camera, const MeshData* m, const
 {
 	/* create world */
 	world = new World();
+	std::cout << "world\n";
 	num_ppl = 10000;
 	running = false;
-
 	
 	/* initialize texture */
 	unsigned char* text_array;
@@ -75,14 +79,19 @@ bool GeometryProject::initialize( const Camera* camera, const MeshData* m, const
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	
-	/* initialize people */
+	/* find max zone population */
+	int pop = (world->get_zone(0))->get_population();
+	for (int i = 1; i < 6; i++)
+	{
+		int curr = (world->get_zone(i))->get_population();
+		if (curr > pop)
+			pop = curr;
+	}
 
-	nyc = new Zone(NULL, "New York City", 100, 1213.4,true);
-	int pop = nyc -> get_population();
+	/* initialize people */
 	people = (Vector3*)calloc(pop, sizeof(Vector3));
 	infected = (Vector3*)calloc(pop, sizeof(Vector3));
 
-	step();
     return true;
 }
 
@@ -148,22 +157,23 @@ void GeometryProject::render( const Camera* camera )
 
 	glPointSize(3.0);
 	
-	glBegin(GL_POINTS);
-	glColor3f(1.0,0.0,0.0);
-	glVertex3f(1.15 * H, 0.016 * H, 1); //singapore
-	glVertex3f(-0.82 * H, 0.4503 * H, 1); //nyc
-	glVertex3f(0.10 * H, 0.53 * H, 1);	//zurich
-	glVertex3f(0.346 * H, 0.33 * H, 1); // cairo
-	glVertex3f(0.809 * H, 0.208 * H, 1);  //mumbai
-	glVertex3f(1.55 * H, 0.39 * H, 1); //tokyo
+	/* if on the outermost zoom */
+	if (camera->zoom <= 20) {
+		glBegin(GL_POINTS);
+		glColor3f(1.0,0.0,0.0);
+		glVertex3f(1.15 * H, 0.016 * H, 1); //singapore
+		glVertex3f(-0.82 * H, 0.4503 * H, 1); //nyc
+		glVertex3f(0.10 * H, 0.53 * H, 1);	//zurich
+		glVertex3f(0.346 * H, 0.33 * H, 1); // cairo
+		glVertex3f(0.809 * H, 0.208 * H, 1);  //mumbai
+		glVertex3f(1.55 * H, 0.39 * H, 1); //tokyo
 
-
-	for (int i = 0; i < nyc->get_population(); i++)
-	{
-		glColor3f(infected[i].x, infected[i].y, infected[i].z);
-		glVertex3f(people[i].x, people[i].y, people[i].z);
+		glEnd();
 	}
-	glEnd();
+	/* else check where you are to render that zone */
+	else {
+
+	}
 	glFlush();
 }
 
@@ -172,11 +182,7 @@ void GeometryProject::render( const Camera* camera )
  */
 void GeometryProject::step()
 {
-	int num_sick = 0;
-	Vector2 c = Vector2(-0.82 * H, 0.4503 * H); //nyc
-	generate_points(people, infected, nyc, &c);
-	/* randomly generate the array */
-	std::cout << "Number of infected: " << num_sick << "\n";
+	world->step();
 }
 
 /**
@@ -199,14 +205,17 @@ void GeometryProject::generate_points(Vector3 *coordinates, Vector3 *color, Zone
 	{
 		Person p = zone->get_person(i);
 		update_person(area, &p);
-		coordinates[i].x = center->x + (p.x  ); 
-		coordinates[i].y = center->y + (p.y  ); 
+		coordinates[i].x = center->x + (p.position_x  ); 
+		coordinates[i].y = center->y + (p.position_y  ); 
 		coordinates[i].z = 1.0;
-		if (p.infected == true)
-			color[i] = Vector3(0.0, 0.0, 0.0);
-		else
-			color[i] = Vector3(1.0, 1.0, 1.0);
-
+		Vector3 c = Vector3(0.0, 0.0, 0.0);
+		if (p.infected["HIV"].first == true)
+			c.x = 0.5;
+		if (p.infected["Flu"].first == true)
+			c.y = 0.5;
+		if (p.infected["Ebola"].first == true)
+			c.z = 0.5;
+		color[i] = c;
 	}
 }
 
@@ -218,12 +227,12 @@ void GeometryProject::update_person(double area, Person* person)
 	//pick a random direction
 	int index = rand() % 4;
 	double radius = sqrt(area/ PI);
-	Vector2 current = Vector2(person->x, person->y);
+	Vector2 current = Vector2(person->position_x, person->position_y);
 	Vector2 next = current + directions[index];
 	if (inArea(radius, next))
 	{
-		person->x = next.x;
-		person->y = next.y;
+		person->position_x = next.x;
+		person->position_y = next.y;
 	}
 }
 

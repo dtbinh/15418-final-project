@@ -25,7 +25,6 @@ CameraRoamControl::CameraRoamControl()
     rotation = RNONE;
 	for (int i = 0; i < 11; i++)
 		zoom_dirs[i] = Vector3::Zero;
-	zoom = 0;
 }
 
 CameraRoamControl::~CameraRoamControl()
@@ -97,23 +96,23 @@ void CameraRoamControl::handle_event( const Application* app, const SDL_Event& e
 			Vector3 input = Vector3(event.button.x, event.button.y, 0.0);
 			window_to_world(&moveto, &input , width, height);
 
-			moveto = moveto / distance(moveto, camera.default_position) * 25;
-			moveto.z = -25;
+			moveto = moveto / distance(moveto, camera.default_position) * 100;
+			moveto.z = -100;
 
 			Vector3 newvect = camera.get_position() + moveto;
 			if (newvect.z < 2500 && newvect.z > 1)
 			{
-				zoom_dirs[zoom] = moveto;
-				zoom++;
+				zoom_dirs[camera.zoom] = moveto;
+				camera.zoom++;
 				camera.translate(moveto);
 			}
 		}
         else if ( event.button.button == SDL_BUTTON_WHEELDOWN )
 		{
-			if (zoom > 0)
+			if (camera.zoom > 0)
 			{
-				zoom--;
-				camera.translate(zoom_dirs[zoom]*-1);
+				camera.zoom--;
+				camera.translate(zoom_dirs[camera.zoom]*-1);
 			}
 		}
         break;

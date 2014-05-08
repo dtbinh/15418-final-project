@@ -1,5 +1,6 @@
 #include "world.hpp"
 
+#define NUM_ZONES 6
 World::World() {
 	setup_zones();
 	this->steps = 0;
@@ -30,14 +31,14 @@ void World::setup_zones(){
 	cairo_loc.pollution = 0.81;
 	cairo_loc.government = 0.27;
 	cairo_loc.healthcare = 0.48;
-	zones = new Zone[6];
+	zones = new Zone[NUM_ZONES];
 	// intialize zones
-	Zone singapore = Zone(singapore_loc, "Singapore", 5400000, 716.1,true);
-	Zone nyc = Zone(nyc_loc, "New York City", 8405837, 1213.4,true);
-	Zone tokyo = Zone(tokyo_loc, "Tokyo", 13185502, 2187.66,true);
-	Zone mumbai = Zone(mumbai_loc, "Mumbai", 12478447, 603,false);
-	Zone zurich = Zone(zurich_loc, "Zurich", 383708, 87.88,false);
-	Zone cairo = Zone(cairo_loc, "Cairo", 6758581, 374,false);
+	Zone singapore = Zone(singapore_loc, "Singapore", 5400, 716.1, 1.15, 0.016, true);
+	Zone nyc = Zone(nyc_loc, "New York City", 840, 1213.4, -0.82, 0.4503, true);
+	Zone tokyo = Zone(tokyo_loc, "Tokyo", 1318, 2187.66, 1.55, 0.39, true);
+	Zone mumbai = Zone(mumbai_loc, "Mumbai", 1247, 603, 0.809, 0.208, false);
+	Zone zurich = Zone(zurich_loc, "Zurich", 38, 87.88, 0.10, 0.53, false);
+	Zone cairo = Zone(cairo_loc, "Cairo", 675, 374, 0.346, 0.33, false);
 	zones[0] = singapore;
 	zones[1] = nyc;
 	zones[2] = tokyo;
@@ -53,10 +54,11 @@ void World::init_random_friendships() {
 	// initialize friendships between zones with random values between 1 and 5
 	double total = 100.0;
 	double current = 0.0;
-	for (int i = 0; i < 6; i++) {
+	for (int i = 0; i < NUM_ZONES; i++) {
 		total = 100.0;
-		for (int j = 0; j < 6; j++) {
-			current = fmod(double(rand()),total) + 1.0;
+		for (int j = 0; j < NUM_ZONES; j++) {
+			double r = (double) (rand() % 5);
+			current = fmod(r,total) + 1.0;
 			total -= current;
 			this->zones[i].change_friendship(this->zones[j].get_name(), current/100.0);
 		}
@@ -73,27 +75,27 @@ void World::init_random_friendships() {
  */
 void World::step() {
 	// introduce virus to each zone at periodic intervals (500 days)
-	int num_zones = NUM_ZONES;
 	int interval = VIRUS_INTERVAL;
-	for (int i = 0; i < num_zones; i++) {
+	for (int i = 0; i <NUM_ZONES; i++) {
 		if (steps == interval*0) {
 			std::string flu = "Flu";
 			this->zones[i].introduce_virus(Virus(2, flu, 2.0, 0.70));
 		}
 		else if (steps == interval*1) {
+			std::cout << "hiv\n";
 			std::string hiv = "HIV";
 			this->zones[i].introduce_virus(Virus(9, hiv, 1.0, 0.85));
 		}
 		else if (steps == interval*2) {
+			std::cout << "eb\n";
 			std::string ebola = "Ebola";
 			this->zones[i].introduce_virus(Virus(13, ebola, 3.0, 0.45));
 		}
 	}
-	
 	if (steps > 0) {
 		// propogate virus in every zone for each active virus, each step after 0
 		// update everyone's time left, depending on which viruses they are infected with
-		for (int i = 0; i < num_zones; i++) {
+		for (int i = 0; i <NUM_ZONES; i++) {
 			this->zones[i].propogate_virus();
 			this->zones[i].update_time_left();
 		}
@@ -104,33 +106,42 @@ void World::step() {
 		// check all viruses to see which ones needs a vaccine and cure for each zone
 		// only active viruses (not dormant) need a new vaccine and cure
 		Virus current;
-		for (int i = 0; i < num_zones; i++) {
-			for (int j = 0; i < this->zones[i].get_num_viruses(); j++) {
-				current = this->zones[i].get_viruses()[j];
-				if (this->zones[i].found_vaccine_and_cure(current)) {
+		for (int i = 0; i < NUM_ZONES; i++) {
+			Zone curr = this->zones[i];
+			int num_vs = curr.get_num_viruses();
+
+			for (int j = 0; j < num_vs; j++) {
+				current = curr.get_viruses()[j];
+				if (curr.found_vaccine_and_cure(current)) {
 					distribute_vaccine_and_cure(current);
 					// distribute the vaccine and cure for that virus
 					// set the virus dormant
 					current.set_dormant(1);
 				}
 			}
+			this->zones[i] = curr;
 		}
 
 		// now for all viruses that have been dormant for more than 100 steps, check if they can evolve
-		for (int i = 0; i < num_zones; i++) {
-			for (int j = 0; i < this->zones[i].get_num_viruses(); j++) {
-				current = this->zones[i].get_viruses()[j];
+		for (int i = 0; i < NUM_ZONES; i++) {
+			Zone curr = this->zones[i];
+			int num_vs = curr.get_num_viruses();
+
+			for (int j = 0; j < num_vs; j++) {
+				current = curr.get_viruses()[j];
 				if (current.get_dormant() > 100) {
-					if (current.evolve_virus(zones[i])) {
+					if (current.evolve_virus(curr)) {
 						current.set_evolved(current.get_evolved() + 1);
 						// update viruses status in the zone
-						this->zones[i].update_virus(current);
+						curr.update_virus(current);
 					}
 				}
 			}
+			this->zones[i] = curr;
 		}
 	}	
 	steps ++;
+	std::cout << steps << "\n";
 }
 
 
@@ -141,6 +152,8 @@ void World::distribute_vaccine_and_cure(Virus virus) {
 	int num_zones = NUM_ZONES;
 	std::map<std::string, double> zone_prob;
 	double prob;
+	//TODO prob always calculates to 0 inside the if statement and causes a crash later in the code
+	//in order to compile the rest of the program, I hard coded a non 0 value for testing purposes
 	for (int i=0; i < num_zones; i++) {
 		// we look at the amount of people the virus killed in the zone
 		// its healthcare and government levels to decide which zone to come up with the vaccine
@@ -148,6 +161,9 @@ void World::distribute_vaccine_and_cure(Virus virus) {
 		if (this->zones[i].has_virus(virus.get_name()) > -1) {
 			prob = (fmod(double(rand()),100) + 1.0)/100.0 * this->zones[i].get_location().healthcare * this->zones[i].get_location().government;
 			prob *= double (this->zones[i].get_virus_killed()[virus.get_name()] * 1.0/this->zones[i].get_initial_population());
+			/****/
+			prob = 0.1;
+			/****/
 			zone_prob[this->zones[i].get_name()] = prob;
 		}
 	}
@@ -161,14 +177,14 @@ void World::distribute_vaccine_and_cure(Virus virus) {
 	std::map<std::string, double>::iterator it;
 	for (it = zone_prob.begin(); it != zone_prob.end(); it++) {
 		current = it->second;
-		current_zone =  this->zones[get_zone_index(it->first)];
+		int index = get_zone_index(it->first);
+		current_zone =  this->zones[index];
 		if (current > highest) {
 			highest = current;
 			distributor = current_zone;
 		}
 		total_infected += (current_zone.get_viruses()[current_zone.has_virus(virus.get_name())]).get_current_infected_num();
 	}
-
 
 	int evolved = virus.get_evolved();
     std::stringstream ss;
@@ -222,7 +238,7 @@ void World::distribute_vaccine_and_cure(Virus virus) {
  * returns the zone with name we are looking for, or a null ptr if that zone does not exist
  */
 int World::get_zone_index(std::string name) {
-	for (int i = 0; i < 5; i++) {
+	for (int i = 0; i < NUM_ZONES; i++) {
 		if (this->zones[i].get_name().compare(name) == 0) {
 			return i;
 		}
@@ -234,4 +250,9 @@ int World::get_zone_index(std::string name) {
 
 int World::get_current_step() {
 	return this->steps;
+}
+
+Zone* World::get_zone(int index)
+{
+	return &(this->zones[index]);
 }
