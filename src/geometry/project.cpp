@@ -161,7 +161,7 @@ void GeometryProject::render( const Camera* camera )
 
 	
 	/* if on the outermost zoom */
-	if (camera->zoom > 20) {
+	if (camera->zoom <= 20) {
 		glPointSize(3.0);
 		glBegin(GL_POINTS);
 		glColor3f(1.0,0.0,0.0);
@@ -179,15 +179,13 @@ void GeometryProject::render( const Camera* camera )
 		/* TODO find which city/zone its zoomed in on
 		 * then generate points on that zone with the center at zone.x and zone.y
 		 * then render those points */
-		Zone* z = world->get_zone(0);
+		Zone* z = get_nearest_zone(camera);
 		glPointSize(1.0);
-//		glColor3f(0.0,1.0, 0.0);
 		glBegin(GL_POINTS);
 		for (int i = 0; i < z->get_population(); i++)
 		{
 			glColor3f(infected[i].x, infected[i].y, infected[i].z);
 			glVertex3f(people[i].x, people[i].y, people[i].z);
-	//		std::cout << people[i] << "\n";
 		}
 		glEnd();
 
@@ -208,9 +206,11 @@ void GeometryProject::step()
 	printf("Step took: %.3f ms\n", 1000.f * (endTime-startTime));
 #endif
 
-	Zone *z = world->get_zone(0);
-	Vector2 c = Vector2(z->x, z->y);
-	generate_points(people, infected, z, &c); 
+//	for (int i = 0; i < world->get_num_zones(); i++) {
+		Zone *z = world->get_zone(0);
+		Vector2 c = Vector2(z->x*H, z->y*H);
+		generate_points(people, infected, z, &c);
+//	}
 }
 
 /**
@@ -221,6 +221,18 @@ void GeometryProject::subdivide()
 		
 }
 
+Zone* GeometryProject::get_nearest_zone(const Camera* camera) 
+{
+	Vector3 pos = camera->get_position();
+	for (int i = 0; i < world->get_num_zones(); i++)
+	{
+		Zone* curr = world->get_zone(i);
+		Vector3 zone = Vector3(curr->x, curr->y, 1.0);
+		if (distance(pos, zone) <= pos.z)
+			return curr;
+	}
+	return NULL;
+}
 /* for all people in a zone with area (msq), update the person's position and convert the new coordinates
  * to real world coordinates 
  */
@@ -236,12 +248,12 @@ void GeometryProject::generate_points(Vector3 *coordinates, Vector3 *color, Zone
 	{
 		Person p = zone->get_person(i);
 		update_person(area, &p);
-//		coordinates[i].x = center->x + (p.position_x  ); 
-//		coordinates[i].y = center->y + (p.position_y  ); 
+		coordinates[i].x = center->x + (p.position_x  ); 
+		coordinates[i].y = center->y + (p.position_y  ); 
 		coordinates[i].z = 1.0;
-		coordinates[i].x = p.position_x;
-		coordinates[i].y = p.position_y;
-		Vector3 c = Vector3(0.0, 0.0, 0.0);
+//		coordinates[i].x = p.position_x;
+//		coordinates[i].y = p.position_y;
+		Vector3 c = Vector3(1.0, 1.0, 1.0);
 		if (p.infected["HIV"].first == true)
 		{
 			hiv_count++;

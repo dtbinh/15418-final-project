@@ -32,7 +32,7 @@ bool Virus::infect(Zone zone, Person infector, Person infecting, bool start) {
 		this->infected_people.push_back(infecting);
 		this->current_infected ++;
 		// set person to immune with 1% probability
-		int is_immune = fmod(rand(),100) + 1;
+		int is_immune = rand()%100 + 1;
 		if (is_immune == 1) {
 			infecting.immune[this->name] = true;
 			this->immune_people.push_back(infecting);

@@ -108,6 +108,7 @@ public:
 	void generate_points(Vector3 *coordinates, Vector3 *color, Zone* zone, Vector2 *center);
 	void update_person(double area, Person* person);
 	bool inArea(double radius, Vector2 vec);
+	Zone* get_nearest_zone(const Camera* camera);
 	/********/
 
 

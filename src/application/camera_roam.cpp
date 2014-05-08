@@ -12,7 +12,7 @@
 namespace _462 {
 
 static const real_t DirectionTable[] = { 0.0, 1.0, -1.0 };
-static const real_t TranslationSpeed = 2.0;
+static const real_t TranslationSpeed = 50;
 static const real_t RotationSpeed = 0.02;
 
 void window_to_world(Vector3 *ret, Vector3 *coord, int w, int h);
@@ -96,8 +96,8 @@ void CameraRoamControl::handle_event( const Application* app, const SDL_Event& e
 			Vector3 input = Vector3(event.button.x, event.button.y, 0.0);
 			window_to_world(&moveto, &input , width, height);
 
-			moveto = moveto / distance(moveto, camera.default_position) * 100;
-			moveto.z = -100;
+			moveto = moveto / distance(moveto, camera.default_position) * TranslationSpeed*2;
+			moveto.z = -TranslationSpeed*2;
 
 			Vector3 newvect = camera.get_position() + moveto;
 			if (newvect.z < 2500 && newvect.z > 1)

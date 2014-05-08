@@ -3,6 +3,8 @@
 #define H 500
 #define W 1000
 
+#define DEBUG
+
 Zone::Zone() {}
 Zone::~Zone() {}
 Zone::Zone(Location location, std::string name, int population, double area, float x, float y,
@@ -15,9 +17,14 @@ Zone::Zone(Location location, std::string name, int population, double area, flo
 	this->num_viruses = 0;
 	// add in a newly create bunch of person structs
 	this->people = new Person [population];
+	this->x = x;
+	this->y = y;
+
+	double radius = sqrt(area/M_PI);
 
 	int use = 0;
 	float wealth = 0.0; 
+
 	// give each person random attributes 
 	for (int i = 0; i < population; i++) {
 		// set person's age randomly between 1-100
@@ -34,31 +41,31 @@ Zone::Zone(Location location, std::string name, int population, double area, flo
 		this->people[i].time_left = (101 - people[i].age)*365;
 
 		// also set person's x and y coordinates here
-		this->people[i].position_x = ((double)rand()/(RAND_MAX)) * 2*W - W;
-		this->people[i].position_y = ((double)rand()/(RAND_MAX)) * 2*H - H;
+		this->people[i].position_x = ((double)rand()/(RAND_MAX)) * 2*radius - radius;
+		this->people[i].position_y = ((double)rand()/(RAND_MAX)) * 2*radius - radius;
 
 		// now find a random percentile value for this person's wealth
-		use = fmod(double(rand()),4) + 1;
+		use = rand()%4 + 1;
 		// if this is meant to be a wealthy zone, then more people are in the upper 50% of world's wealth with a 3/4 chance
 		if (wealthy) {
 			if (use < 4) {
 				// return a fraction between 0.5 and 1.0
-				wealth = (fmod(double(rand()),50) + 1.0) / 100.0 + 0.5;
+				wealth = (rand()%50 + 1.0) / 100.0 + 0.5;
 			}
 			else {
 				// return a fraction between 0.0 and 0.5
-				wealth = (fmod(double(rand()),50)+ 1.0) / 100.0;
+				wealth = (rand()%50 + 1.0) / 100.0;
 			}
 		}
 		// else people are in the lower 50% of world's wealth with a 3/4 chance
 		else {
 			if (use < 4) {
 				// return a fraction between 0.0 and 0.5
-				wealth = (fmod(double(rand()),50) + 1.0) / 100.0;
+				wealth = (rand()%50 + 1.0) / 100.0;
 			}
 			else {
 				// return a fraction between 0.5 and 1.0
-				wealth = (fmod(double(rand()),50) + 1.0) / 100.0 + 0.5;
+				wealth = (rand()%50 + 1.0) / 100.0 + 0.5;
 			}
 		}
 
@@ -243,7 +250,7 @@ void Zone::introduce_virus(Virus virus) {
 	int initial = INITIAL_INFECTED;
 	// infect random INITIAL_INFECTED number of people
 	while (infected < initial) {
-		i = fmod(double(rand()),double(pop));
+		i = rand() % pop;
 		current = people[i];
 		if (!current.dead) {
 			// infect person only if not dead yet
@@ -291,6 +298,16 @@ void Zone::propogate_virus() {
 	Person infecting; 
 	std::list<int> nearest;
 
+#ifdef DEBUG
+	int hiv_mutations = 0;
+	int flu_mutations = 0;
+	int ebo_mutations = 0;
+
+	int hiv_infections = 0;
+	int flu_infections = 0;
+	int ebo_infections = 0;
+#endif
+
 	for (int i = 0; i < this->num_viruses; i++) {
 		current = this->viruses[i];
 		if (current.get_dormant() == 0) {
@@ -312,17 +329,36 @@ void Zone::propogate_virus() {
 					continue;
 				}
 				if (current.infect(*this, infector, infecting,false)) {
-					if ((fmod(double(rand()),50)/100.0) <= current.get_mutation_prob()) {
+					if ((rand()%100)/100.0 <= current.get_mutation_prob()) {
 						// add new infected person to map of infected person with new mutated id
 						int id = rand();
 						current.add_infected_person(*it, id);
 						infecting.infected[current.get_name()] = std::make_pair(true,id);
+
+#ifdef DEBUG
+						std::string name = current.get_name();
+						if (name.compare("HIV")==0)
+							hiv_mutations++;
+						else if (name.compare("Flu") == 0)
+							flu_mutations++;
+						else if (name.compare("Ebola") == 0)
+							ebo_mutations++;
+#endif
 					}
 					else {
 						// add new infected person to map with old id 
 						current.add_infected_person(*it, current.get_id());
 						infecting.infected[current.get_name()] = std::make_pair(true,current.get_id());
 					}
+#ifdef DEBUG
+					std::string name = current.get_name();
+					if (name.compare("HIV")==0)
+						hiv_infections++;
+					else if (name.compare("Flu") == 0)
+						flu_infections++;
+					else if (name.compare("Ebola") == 0)
+						ebo_infections++;
+#endif
 				}
 				people[*it] = infecting;
 			}
@@ -330,6 +366,17 @@ void Zone::propogate_virus() {
 		}
 		this->viruses[i] = current;
 	}
+
+#ifdef DEBUG
+	std::cout << "\n*** Zone: " << this->name << " ***\n";
+	std::cout << "Infected with HIV: " << hiv_infections << "\n";
+	std::cout << "Infected with Influenza: " << flu_infections << "\n";
+	std::cout << "Infected with Ebola: " << ebo_infections << "\n";
+	std::cout << "\n";
+	std::cout << "Total amount of distinct HIV viruses: " << hiv_mutations << "\n";
+	std::cout << "Total amount of distinct Influenza viruses: " << flu_mutations << "\n";
+	std::cout << "Total amount of distinct Ebola viruses: " << ebo_mutations << "\n";
+#endif
 }
 
 
@@ -420,7 +467,7 @@ void Zone::update_virus(Virus virus) {
 	int initial = INITIAL_INFECTED;
 	// infect random INITIAL_INFECTED number of people
 	while (infected < initial) {
-		i = fmod(double(rand()),double(pop));
+		i = rand() % pop;
 		current = people[i];
 		if (!current.dead) {
 			// infect person only if not dead yet

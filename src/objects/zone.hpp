@@ -9,6 +9,8 @@
 #include <iostream>
 #include <string>
 #include <sstream>
+#include "cycleTimer.h"
+#include <stdio.h>
 
 class Virus; // forward declaration
 

@@ -21,6 +21,7 @@ public:
 	int get_zone_index(std::string name);
 	int get_current_step();
 	Zone* get_zone(int index);
+	int get_num_zones();
 	
 private:
 

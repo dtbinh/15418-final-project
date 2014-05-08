@@ -17,7 +17,7 @@ SRCS = \
 	math/matrix.cpp \
 	math/camera.cpp \
 	scene/mesh.cpp \
-	geometry/main.cpp \
+	geometry/test.cpp \
 	geometry/project.cpp
 
 TARGET = finalproject

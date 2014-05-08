@@ -1,12 +1,14 @@
 #include "world.hpp"
+#include <assert.h>
 
 #define NUM_ZONES 6
-#define S  1;
+#define S  0.01;
+
+#define DEBUG
 World::World() {
 	setup_zones();
 	this->steps = 0;
 }
-
 /*
  * construct the 6 different zones with all their attributes and people here
  */
@@ -77,28 +79,60 @@ void World::init_random_friendships() {
 void World::step() {
 	// introduce virus to each zone at periodic intervals (500 days)
 	int interval = VIRUS_INTERVAL;
+	double start,end;
+#ifdef DEBUG
+	std::cout << "\n** IN WORLD.CPP **\n";
+	std::cout << "Day: " << steps << "\n";
+/*	for (int i = 0; i < NUM_ZONES; i++) {
+	}*/
+#endif
 	for (int i = 0; i <NUM_ZONES; i++) {
 		if (steps == interval*0) {
 			std::string flu = "Flu";
 			double str = 2.0 * S;
+
+			start = CycleTimer::currentSeconds();
 			this->zones[i].introduce_virus(Virus(2, flu, str, 0.70));	
+			end = CycleTimer::currentSeconds();
+#ifdef DEBUG
+			printf("Introducing Flu took: %.3f ms in %s\n", 1000.f * (end-start), this->zones[i].get_name().c_str());
+#endif
 		}
 		else if (steps == interval*1) {
 			std::string hiv = "HIV";
 			double str = 1.0 * S;
+
+			start = CycleTimer::currentSeconds();
 			this->zones[i].introduce_virus(Virus(9, hiv, str, 0.85));
+			end = CycleTimer::currentSeconds();
+#ifdef DEBUG
+			printf("Introducing HIV took: %.3f ms in %s\n", 1000.f * (end-start), this->zones[i].get_name().c_str());
+#endif
 		}
 		else if (steps == interval*2) {
 			std::string ebola = "Ebola";
 			double str = 3.0 * S;
+
+			start = CycleTimer::currentSeconds();
 			this->zones[i].introduce_virus(Virus(13, ebola, str, 0.45));
+			end = CycleTimer::currentSeconds();
+#ifdef DEBUG
+			printf("Introducing Ebola took: %.3f ms %s\n", 1000.f * (end-start), this->zones[i].get_name().c_str());
+#endif
 		}
 	}
 	if (steps > 0) {
 		// propogate virus in every zone for each active virus, each step after 0
 		// update everyone's time left, depending on which viruses they are infected with
 		for (int i = 0; i <NUM_ZONES; i++) {
+
+			start = CycleTimer::currentSeconds();
 			this->zones[i].propogate_virus();
+			end = CycleTimer::currentSeconds();
+#ifdef DEBUG
+			printf("\nPropogating virus took: %.3f ms in %s\n", 1000.f * (end-start), this->zones[i].get_name().c_str());
+#endif
+
 			this->zones[i].update_time_left();
 		}
 
@@ -108,6 +142,8 @@ void World::step() {
 		// check all viruses to see which ones needs a vaccine and cure for each zone
 		// only active viruses (not dormant) need a new vaccine and cure
 		Virus current;
+
+		start = CycleTimer::currentSeconds();
 		for (int i = 0; i < NUM_ZONES; i++) {
 			Zone curr = this->zones[i];
 			int num_vs = curr.get_num_viruses();
@@ -123,7 +159,13 @@ void World::step() {
 			}
 			this->zones[i] = curr;
 		}
+		end = CycleTimer::currentSeconds();
+#ifdef DEBUG
+		printf("\nDistributing vaccine and cure took: %.3f ms\n", 1000.f * (end-start));
+#endif
 
+
+		start = CycleTimer::currentSeconds();
 		// now for all viruses that have been dormant for more than 100 steps, check if they can evolve
 		for (int i = 0; i < NUM_ZONES; i++) {
 			Zone curr = this->zones[i];
@@ -141,9 +183,13 @@ void World::step() {
 			}
 			this->zones[i] = curr;
 		}
+		end = CycleTimer::currentSeconds();
+#ifdef DEBUG
+		printf("\nEvolution of virus took: %.3f ms\n", 1000.f * (end-start));
+#endif
+
 	}	
 	steps ++;
-	std::cout << steps << "\n";
 }
 
 
@@ -161,9 +207,10 @@ void World::distribute_vaccine_and_cure(Virus virus) {
 		// its healthcare and government levels to decide which zone to come up with the vaccine
 		// some randomness involved too
 		if (this->zones[i].has_virus(virus.get_name()) > -1) {
-			prob = (fmod(double(rand()),100) + 1.0)/100.0 * this->zones[i].get_location().healthcare * this->zones[i].get_location().government;
-			prob *= double (this->zones[i].get_virus_killed()[virus.get_name()] * 1.0/this->zones[i].get_initial_population());
+			prob =  (rand()%100 + 1.0)/100.0 * this->zones[i].get_location().healthcare * this->zones[i].get_location().government;
+			prob *= (this->zones[i].get_virus_killed()[virus.get_name()] * 1.0/this->zones[i].get_initial_population());
 			/****/
+			assert(prob > 0);
 			prob = 0.1;
 			/****/
 			zone_prob[this->zones[i].get_name()] = prob;
@@ -257,4 +304,8 @@ int World::get_current_step() {
 Zone* World::get_zone(int index)
 {
 	return &(this->zones[index]);
+}
+
+int World::get_num_zones() {
+	return NUM_ZONES;
 }
