@@ -1,8 +1,12 @@
 #include "zone.hpp"
 
+#define H 500
+#define W 1000
+
 Zone::Zone() {}
 Zone::~Zone() {}
-Zone::Zone(Location location, std::string name, int population, double area, bool wealthy) {
+Zone::Zone(Location location, std::string name, int population, double area, float x, float y,
+		   bool wealthy) {
 	this->name = name;
 	this->loc = location;
 	this->initial_population = population;
@@ -30,9 +34,8 @@ Zone::Zone(Location location, std::string name, int population, double area, boo
 		this->people[i].time_left = (101 - people[i].age)*365;
 
 		// also set person's x and y coordinates here
-		// TO DO get right positions
-		this->people[i].position_x = 0.0;
-		this->people[i].position_y = 0.0;
+		this->people[i].position_x = ((double)rand()/(RAND_MAX)) * 2*W - W;
+		this->people[i].position_y = ((double)rand()/(RAND_MAX)) * 2*H - H;
 
 		// now find a random percentile value for this person's wealth
 		use = fmod(double(rand()),4) + 1;
@@ -108,6 +111,13 @@ void Zone::set_population(int size) {
  */
 int Zone::get_initial_population() {
 	return this->initial_population;
+}
+
+/*
+ * gets the area in km squared
+ */
+double Zone::get_area() {
+	return this->area;
 }
 
 
@@ -222,7 +232,6 @@ std::vector<Cure> Zone::get_cures() {
 void Zone::introduce_virus(Virus virus) {
 	this->virus_active_time[virus.get_name()] = 0;
 	this->virus_killed[virus.get_name()] = 0;
-	this->viruses.push_back(virus);
 	virus.set_dormant(0);
 
 	this->num_viruses += 1;
@@ -235,7 +244,7 @@ void Zone::introduce_virus(Virus virus) {
 	// infect random INITIAL_INFECTED number of people
 	while (infected < initial) {
 		i = fmod(double(rand()),double(pop));
-		current = get_person(i);
+		current = people[i];
 		if (!current.dead) {
 			// infect person only if not dead yet
 			if (virus.infect(*this,current,current, true)) {
@@ -243,9 +252,11 @@ void Zone::introduce_virus(Virus virus) {
 				// add new infected person to map with original virus id
 				virus.add_infected_person(i, virus.get_id());
 				current.infected[virus.get_name()] = std::make_pair(true,virus.get_id());
+				people[i] = current;
 			}
 		}
 	}
+	this->viruses.push_back(virus);
 }
 
 /*
@@ -285,8 +296,9 @@ void Zone::propogate_virus() {
 		if (current.get_dormant() == 0) {
 			this->virus_active_time[current.get_name()]++;
 		}
+		int infect_num = current.get_current_infected_num();
 		// go through each alive infected person of the current virus
-		for (int j = 0; j < current.get_current_infected_num(); j++) {
+		for (int j = 0; j < infect_num; j++) {
 			infector = current.get_infected_people()[j];
 			if (infector.dead) {
 				continue;
@@ -312,8 +324,11 @@ void Zone::propogate_virus() {
 						infecting.infected[current.get_name()] = std::make_pair(true,current.get_id());
 					}
 				}
+				people[*it] = infecting;
 			}
+			current.get_infected_people()[j] = infector;
 		}
+		this->viruses[i] = current;
 	}
 }
 
@@ -406,7 +421,7 @@ void Zone::update_virus(Virus virus) {
 	// infect random INITIAL_INFECTED number of people
 	while (infected < initial) {
 		i = fmod(double(rand()),double(pop));
-		current = get_person(i);
+		current = people[i];
 		if (!current.dead) {
 			// infect person only if not dead yet
 			if (virus.infect(*this,current,current, true)) {
@@ -414,6 +429,7 @@ void Zone::update_virus(Virus virus) {
 				// add new infected person to map with original virus id
 				virus.add_infected_person(i, virus.get_id());
 				current.infected[virus.get_name()] = std::make_pair(true,virus.get_id());
+				people[i] = current;
 			}
 		}
 	}

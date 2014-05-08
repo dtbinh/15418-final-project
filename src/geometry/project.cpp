@@ -9,11 +9,19 @@
 #include "geometry/project.hpp"
 #include "application/opengl.hpp"
 #include "application/imageio.hpp"
+#include "objects/cycleTimer.h"
+
 #include <assert.h>
 #include <math.h>
 
+#include <cuda.h>
+#include <cuda_runtime.h>
+
+
 #define H 500
 #define W 1000
+
+#define PRINT_INFO
 /*
    A namespace declaration. All project files use this namespace.
    Add this declaration (and its closing) to all source/headers you create.
@@ -47,7 +55,6 @@ bool GeometryProject::initialize( const Camera* camera, const MeshData* m, const
 	world = new World();
 	num_ppl = 10000;
 	running = false;
-
 	
 	/* initialize texture */
 	unsigned char* text_array;
@@ -75,14 +82,20 @@ bool GeometryProject::initialize( const Camera* camera, const MeshData* m, const
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	
-	/* initialize people */
+	/* find max zone population to allocate array large enough for everything */
+	int pop = (world->get_zone(0))->get_population();
+	for (int i = 1; i < 6; i++)
+	{
+		int curr = (world->get_zone(i))->get_population();
+		if (curr > pop)
+			pop = curr;
+	}
 
-	nyc = new Zone(NULL, "New York City", 100, 1213.4,true);
-	int pop = nyc -> get_population();
+	/* initialize people */
 	people = (Vector3*)calloc(pop, sizeof(Vector3));
 	infected = (Vector3*)calloc(pop, sizeof(Vector3));
+	/* TODO initialize people's x and y coordinates in each zone */
 
-	step();
     return true;
 }
 
@@ -146,24 +159,39 @@ void GeometryProject::render( const Camera* camera )
 		glDisable(GL_TEXTURE_2D);
 	}
 
-	glPointSize(3.0);
 	
-	glBegin(GL_POINTS);
-	glColor3f(1.0,0.0,0.0);
-	glVertex3f(1.15 * H, 0.016 * H, 1); //singapore
-	glVertex3f(-0.82 * H, 0.4503 * H, 1); //nyc
-	glVertex3f(0.10 * H, 0.53 * H, 1);	//zurich
-	glVertex3f(0.346 * H, 0.33 * H, 1); // cairo
-	glVertex3f(0.809 * H, 0.208 * H, 1);  //mumbai
-	glVertex3f(1.55 * H, 0.39 * H, 1); //tokyo
+	/* if on the outermost zoom */
+	if (camera->zoom > 20) {
+		glPointSize(3.0);
+		glBegin(GL_POINTS);
+		glColor3f(1.0,0.0,0.0);
+		glVertex3f(1.15 * H, 0.016 * H, 1); //singapore
+		glVertex3f(-0.82 * H, 0.4503 * H, 1); //nyc
+		glVertex3f(0.10 * H, 0.53 * H, 1);	//zurich
+		glVertex3f(0.346 * H, 0.33 * H, 1); // cairo
+		glVertex3f(0.809 * H, 0.208 * H, 1);  //mumbai
+		glVertex3f(1.55 * H, 0.39 * H, 1); //tokyo
 
-
-	for (int i = 0; i < nyc->get_population(); i++)
-	{
-		glColor3f(infected[i].x, infected[i].y, infected[i].z);
-		glVertex3f(people[i].x, people[i].y, people[i].z);
+		glEnd();
 	}
-	glEnd();
+	/* else check where you are to render that zone */
+	else {
+		/* TODO find which city/zone its zoomed in on
+		 * then generate points on that zone with the center at zone.x and zone.y
+		 * then render those points */
+		Zone* z = world->get_zone(0);
+		glPointSize(1.0);
+//		glColor3f(0.0,1.0, 0.0);
+		glBegin(GL_POINTS);
+		for (int i = 0; i < z->get_population(); i++)
+		{
+			glColor3f(infected[i].x, infected[i].y, infected[i].z);
+			glVertex3f(people[i].x, people[i].y, people[i].z);
+	//		std::cout << people[i] << "\n";
+		}
+		glEnd();
+
+	}
 	glFlush();
 }
 
@@ -172,11 +200,17 @@ void GeometryProject::render( const Camera* camera )
  */
 void GeometryProject::step()
 {
-	int num_sick = 0;
-	Vector2 c = Vector2(-0.82 * H, 0.4503 * H); //nyc
-	generate_points(people, infected, nyc, &c);
-	/* randomly generate the array */
-	std::cout << "Number of infected: " << num_sick << "\n";
+	double startTime = CycleTimer::currentSeconds();
+	world->step();
+	double endTime = CycleTimer::currentSeconds();
+
+#ifdef PRINT_INFO
+	printf("Step took: %.3f ms\n", 1000.f * (endTime-startTime));
+#endif
+
+	Zone *z = world->get_zone(0);
+	Vector2 c = Vector2(z->x, z->y);
+	generate_points(people, infected, z, &c); 
 }
 
 /**
@@ -193,21 +227,45 @@ void GeometryProject::subdivide()
 void GeometryProject::generate_points(Vector3 *coordinates, Vector3 *color, Zone* zone, Vector2 *center)
 {
 	int popul = zone->get_population();
-	std::cout << popul << " enerate\n";
 	double area = zone->get_area();
+	
+	int hiv_count = 0;
+	int flu_count = 0;
+	int ebo_count = 0;
 	for (int i = 0; i < popul; i++)
 	{
 		Person p = zone->get_person(i);
 		update_person(area, &p);
-		coordinates[i].x = center->x + (p.x  ); 
-		coordinates[i].y = center->y + (p.y  ); 
+//		coordinates[i].x = center->x + (p.position_x  ); 
+//		coordinates[i].y = center->y + (p.position_y  ); 
 		coordinates[i].z = 1.0;
-		if (p.infected == true)
-			color[i] = Vector3(0.0, 0.0, 0.0);
-		else
-			color[i] = Vector3(1.0, 1.0, 1.0);
-
+		coordinates[i].x = p.position_x;
+		coordinates[i].y = p.position_y;
+		Vector3 c = Vector3(0.0, 0.0, 0.0);
+		if (p.infected["HIV"].first == true)
+		{
+			hiv_count++;
+			c.x = 0.5;
+		}
+		if (p.infected["Flu"].first == true)
+		{
+			flu_count++;
+			c.y = 0.5;
+		}
+		if (p.infected["Ebola"].first == true)
+		{
+			ebo_count++;
+			c.z = 0.5;
+		}
+		color[i] = c;
 	}
+#ifdef PRINT_INFO
+	std::cout << "Day: " << world->get_current_step() << "\n";
+	std::cout << "*** Zone: " << zone->get_name() << " ***\n";
+	std::cout << "Infected with HIV: " << hiv_count << "\n";
+	std::cout << "Infected with Influenza: " << flu_count << "\n";
+	std::cout << "Infected with Ebola: " << ebo_count << "\n";
+#endif
 }
 
 /** update a persons zone coordinates based on randomly selecting a direction and checking if 
@@ -218,21 +276,23 @@ void GeometryProject::update_person(double area, Person* person)
 	//pick a random direction
 	int index = rand() % 4;
 	double radius = sqrt(area/ PI);
-	Vector2 current = Vector2(person->x, person->y);
-	Vector2 next = current + directions[index];
+	Vector2 current = Vector2(person->position_x, person->position_y);
+	Vector2 next = current + directions[index]*2;
 	if (inArea(radius, next))
 	{
-		person->x = next.x;
-		person->y = next.y;
+		person->position_x = next.x;
+		person->position_y = next.y;
 	}
 }
 
 /** checks if the vector is inside the radius **/
 bool GeometryProject::inArea(double radius, Vector2 vec)
 {
+	/*TODO make a more precise precise measuring within boundaries functionality
+	 * maybe check the color of the pixel */
 	if (length(vec) <= radius)
 		return true;
-	return false;
+	return true;
 }
 /**** HELPER FUNCTIONS ****/
 
