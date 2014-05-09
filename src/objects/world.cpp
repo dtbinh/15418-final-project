@@ -71,7 +71,7 @@ void World::init_random_friendships() {
 
 /*
  * this function makes 1 time step in the world. Each step, new events happen. We can have a vaccine/ cure made if certain conditions are met, 
- * we can introduce new viruses to a zone, we propogate all active viruses, propogate vaccine and cures, evolve a virus or make it dormant, sell viruses and cures
+ * we can introduce new viruses to a zone, we propagate all active viruses, propagate vaccine and cures, evolve a virus or make it dormant, sell viruses and cures
  * from one zone to another zone, update the time that each person has left (each person has a natural time left calculated from their age and the value decreases
  * every step, but being infected drops this value faster). Once their time left reaches 0, the person dies and is remvoed from the zone. 
  * a step is a day
@@ -122,15 +122,15 @@ void World::step() {
 		}
 	}
 	if (steps > 0) {
-		// propogate virus in every zone for each active virus, each step after 0
+		// propagate virus in every zone for each active virus, each step after 0
 		// update everyone's time left, depending on which viruses they are infected with
 		for (int i = 0; i <NUM_ZONES; i++) {
 
 			start = CycleTimer::currentSeconds();
-			this->zones[i].propogate_virus();
+			this->zones[i].propagate_virus();
 			end = CycleTimer::currentSeconds();
 #ifdef DEBUG
-			printf("\nPropogating virus took: %.3f ms in %s\n", 1000.f * (end-start), this->zones[i].get_name().c_str());
+			printf("\npropagating virus took: %.3f ms in %s\n", 1000.f * (end-start), this->zones[i].get_name().c_str());
 #endif
 
 			this->zones[i].update_time_left();
@@ -257,28 +257,28 @@ void World::distribute_vaccine_and_cure(Virus virus) {
 	
 	int total_cures = total_infected*5/6;
 
-	// now propogate the cure throughout each zone first
+	// now propagate the cure throughout each zone first
 	// each zone gets different number of cures;
-	// look at the friendship level of distributor, propogate cures to the best friend first with randomness
+	// look at the friendship level of distributor, propagate cures to the best friend first with randomness
 	// first let the zone that made the cure, cure all of their infected
 
 
 	distributor.introduce_cure(cure);
-	total_cures = distributor.propogate_cure(total_cures, cure);
+	total_cures = distributor.propagate_cure(total_cures, cure);
 	distributor.introduce_vaccine(vaccine);
-	distributor.propogate_vaccine(vaccine);
+	distributor.propagate_vaccine(vaccine);
 
 	// go through zones with that virus and distribute cures according to their friendship levels
 	for (it = zone_prob.begin(); it != zone_prob.end(); it++) {
 		// make new cure and vaccine object for each zone
 		Vaccine vaccine = Vaccine(id, virus.get_name() + add1, virus.get_name(), virus.get_evolved());
 		Cure cure = Cure(id, virus.get_name() + add2, virus.get_name(), virus.get_evolved());
-		// propogate cure and vaccine for each zone
+		// propagate cure and vaccine for each zone
 		current_zone = this->zones[get_zone_index(it->first)];
 		current_zone.introduce_cure(cure);
-		total_cures = current_zone.propogate_cure(int(total_cures * distributor.get_friendship(current_zone.get_name())), cure);
+		total_cures = current_zone.propagate_cure(int(total_cures * distributor.get_friendship(current_zone.get_name())), cure);
 		current_zone.introduce_vaccine(vaccine);
-		current_zone.propogate_vaccine(vaccine);
+		current_zone.propagate_vaccine(vaccine);
 	}
 	init_random_friendships();
 }

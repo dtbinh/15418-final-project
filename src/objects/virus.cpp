@@ -44,7 +44,8 @@ bool Virus::infect(Zone zone, Person infector, Person infecting, bool start) {
 		// for all viruses, a higher zone population density makes prob of infection higher
 		// population density in real world can be anywhere from 1 - 50000 (people per km^2)
 		// take this density over 100000
-		double prob = zone.calculate_population_density()/100000.0;
+
+		double prob = zone.calculate_population_density()/MAX_POPULATION_DENSITY;
 		// also if infector is a carrier (naturally immune)  probability is higher to infect
 		if (infector.immune["name"]) {
 			prob *= 1.5;
@@ -186,4 +187,5 @@ std::map <int, int> Virus::get_infected_people_map() {
 void Virus::add_infected_person(int i, int id) {
 	this->infected_people_map[i] = id;
 }
+
 
